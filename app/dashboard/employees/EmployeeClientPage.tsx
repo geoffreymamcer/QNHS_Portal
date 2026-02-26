@@ -38,18 +38,20 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
     const [selectedPos, setSelectedPos] = useState('All');
     const [selectedClass, setSelectedClass] = useState('All');
 
-    const departments = useMemo(() => Array.from(new Set(initialEmployees.map(e => e.department || e.dept).filter(Boolean))).sort(), [initialEmployees]);
-    const positions = useMemo(() => Array.from(new Set(initialEmployees.map(e => e.position).filter(Boolean))).sort(), [initialEmployees]);
+    const departments = useMemo(() => Array.from(new Set(initialEmployees.map(e => e.department).filter(Boolean))).sort(), [initialEmployees]);
+    const positions = useMemo(() => Array.from(new Set(initialEmployees.map(e => e.position_title).filter(Boolean))).sort(), [initialEmployees]);
+    const classifications = useMemo(() => Array.from(new Set(initialEmployees.map(e => e.classification).filter(Boolean))).sort(), [initialEmployees]);
 
     const filteredEmployees = useMemo(() => {
         return initialEmployees.filter(emp => {
             const fullName = `${emp.first_name || ''} ${emp.last_name || ''}`.toLowerCase();
             const matchesSearch = fullName.includes(searchQuery.toLowerCase()) ||
-                (emp.employee_id && emp.employee_id.includes(searchQuery));
+                (emp.employee_id && emp.employee_id.includes(searchQuery)) ||
+                (emp.item_number && emp.item_number.toLowerCase().includes(searchQuery.toLowerCase()));
 
-            const matchesDept = selectedDept === 'All' || (emp.department || emp.dept) === selectedDept;
-            const matchesPos = selectedPos === 'All' || emp.position === selectedPos;
-            const matchesClass = selectedClass === 'All' || (emp.position_classification || emp.classification) === selectedClass;
+            const matchesDept = selectedDept === 'All' || emp.department === selectedDept;
+            const matchesPos = selectedPos === 'All' || emp.position_title === selectedPos;
+            const matchesClass = selectedClass === 'All' || emp.classification === selectedClass;
 
             return matchesSearch && matchesDept && matchesPos && matchesClass;
         });
@@ -153,8 +155,7 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
                             onChange={(e) => setSelectedClass(e.target.value)}
                         >
                             <option value="All">All Classifications</option>
-                            <option value="Teaching">Teaching</option>
-                            <option value="Non-Teaching">Non-Teaching</option>
+                            {classifications.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                     </div>
                 </div>
@@ -169,7 +170,7 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
                                 <th className="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Employee</th>
                                 <th className="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Department & Position</th>
                                 <th className="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Classification</th>
-                                <th className="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Retirement Status</th>
+                                <th className="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Salary Grade</th>
                                 <th className="px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
                             </tr>
                         </thead>
@@ -197,26 +198,27 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <p className="text-sm font-semibold text-slate-700">{emp.position}</p>
-                                            <p className="text-[11px] text-slate-500">{emp.department || emp.dept}</p>
+                                            <p className="text-sm font-semibold text-slate-700">{emp.position_title}</p>
+                                            <p className="text-[11px] text-blue-600 font-bold">{emp.department}</p>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${(emp.position_classification || emp.classification) === 'Teaching'
-                                                ? 'bg-blue-50 text-blue-700 border-blue-100'
-                                                : 'bg-indigo-50 text-indigo-700 border-indigo-100'
-                                                }`}>
-                                                {emp.position_classification || emp.classification}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {isRetiring(emp.birthdate) ? (
-                                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 text-red-700 text-[10px] font-bold border border-red-100 animate-pulse">
-                                                    <span className="h-1.5 w-1.5 rounded-full bg-red-500"></span>
-                                                    RETIRING
+                                            <div className="space-y-1">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${emp.classification === 'Teaching'
+                                                    ? 'bg-blue-50 text-blue-700 border-blue-100'
+                                                    : 'bg-indigo-50 text-indigo-700 border-indigo-100'
+                                                    }`}>
+                                                    {emp.classification}
                                                 </span>
-                                            ) : (
-                                                <span className="text-[11px] font-medium text-slate-400 italic">No Action Needed</span>
-                                            )}
+                                                <p className="text-[10px] text-slate-400 font-mono tracking-tighter truncate max-w-[150px]" title={emp.item_number}>
+                                                    {emp.item_number || 'No Item #'}
+                                                </p>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col">
+                                                <span className="text-xs font-bold text-slate-700">SG {emp.salary_grade || '??'}</span>
+                                                <span className="text-[10px] text-slate-400">Step {emp.step || '?'}</span>
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">

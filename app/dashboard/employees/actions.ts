@@ -15,7 +15,9 @@ export async function createEmployee(formData: FormData) {
 
         const { error: uploadError } = await supabase.storage
             .from('employee-photos')
-            .upload(filePath, photoFile);
+            .upload(filePath, photoFile, {
+                contentType: photoFile.type
+            });
 
         if (uploadError) {
             console.error('Photo upload error:', uploadError);
@@ -29,32 +31,36 @@ export async function createEmployee(formData: FormData) {
 
     const data = {
         employee_id: formData.get('employeeId') as string,
-        employee_num: formData.get('employeeNum') as string,
+        photo_url: photoUrl,
         first_name: formData.get('firstName') as string,
         mid_name: formData.get('middleName') as string,
         last_name: formData.get('lastName') as string,
         sex: formData.get('gender') as string,
         birthdate: formData.get('birthdate') as string || null,
-        civil_status: formData.get('civilStatus') as string,
-        pagibig_number: formData.get('pagibig') as string,
-        philhealth_number: formData.get('philhealth') as string,
-        gsis_number: formData.get('gsis') as string,
-        account_number: formData.get('accNum') as string,
         tin: formData.get('tin') as string,
-        position: formData.get('position') as string,
+        civil_service_eligibility: formData.get('eligibility') as string,
+        is_deceased: formData.get('isDeceased') === 'true',
+
+        position_title: formData.get('positionTitle') as string,
+        classification: formData.get('classification') as string,
         department: formData.get('department') as string,
-        position_classification: formData.get('classification') as string,
-        email: formData.get('email') as string,
-        contact_no: formData.get('contactNo') as string,
-        hired_date: formData.get('hiredDate') as string || null,
-        date_promoted: formData.get('datePromoted') as string || null,
-        last_assign: formData.get('lastAssign') as string,
+        status: formData.get('status') as string,
+        level: formData.get('level') as string,
+
+        item_number: formData.get('itemNumber') as string,
+        salary_grade: formData.get('salaryGrade') ? parseInt(formData.get('salaryGrade') as string) : null,
+        step: formData.get('step') ? parseInt(formData.get('step') as string) : null,
+        annual_salary_authorized: formData.get('salaryAuthorized') ? parseFloat(formData.get('salaryAuthorized') as string) : null,
+        annual_salary_actual: formData.get('salaryActual') ? parseFloat(formData.get('salaryActual') as string) : null,
+
+        area_code: formData.get('areaCode') as string,
+        area_type: formData.get('areaType') as string,
+        ppa_attribution: formData.get('ppaAttribution') as string,
+
+        original_appointment_date: formData.get('appointmentDate') as string || null,
+        last_promotion_date: formData.get('promotionDate') as string || null,
         retirement_date: formData.get('retirementDate') as string || null,
         resigned_date: formData.get('resignedDate') as string || null,
-        transferred_date: formData.get('transferredDate') as string || null,
-        is_deceased: formData.get('isDeceased') === 'true',
-        file_url: formData.get('fileUrl') as string,
-        photo_url: photoUrl,
     };
 
     const { error } = await supabase.from('employees').insert([data]);
@@ -78,7 +84,9 @@ export async function updateEmployee(id: string, formData: FormData) {
 
         const { error: uploadError } = await supabase.storage
             .from('employee-photos')
-            .upload(filePath, photoFile);
+            .upload(filePath, photoFile, {
+                contentType: photoFile.type
+            });
 
         if (uploadError) {
             console.error('Photo upload error:', uploadError);
@@ -92,32 +100,36 @@ export async function updateEmployee(id: string, formData: FormData) {
 
     const data = {
         employee_id: formData.get('employeeId') as string,
-        employee_num: formData.get('employeeNum') as string,
+        photo_url: photoUrl,
         first_name: formData.get('firstName') as string,
         mid_name: formData.get('middleName') as string,
         last_name: formData.get('lastName') as string,
         sex: formData.get('gender') as string,
         birthdate: formData.get('birthdate') as string || null,
-        civil_status: formData.get('civilStatus') as string,
-        pagibig_number: formData.get('pagibig') as string,
-        philhealth_number: formData.get('philhealth') as string,
-        gsis_number: formData.get('gsis') as string,
-        account_number: formData.get('accNum') as string,
         tin: formData.get('tin') as string,
-        position: formData.get('position') as string,
+        civil_service_eligibility: formData.get('eligibility') as string,
+        is_deceased: formData.get('isDeceased') === 'true',
+
+        position_title: formData.get('positionTitle') as string,
+        classification: formData.get('classification') as string,
         department: formData.get('department') as string,
-        position_classification: formData.get('classification') as string,
-        email: formData.get('email') as string,
-        contact_no: formData.get('contactNo') as string,
-        hired_date: formData.get('hiredDate') as string || null,
-        date_promoted: formData.get('datePromoted') as string || null,
-        last_assign: formData.get('lastAssign') as string,
+        status: formData.get('status') as string,
+        level: formData.get('level') as string,
+
+        item_number: formData.get('itemNumber') as string,
+        salary_grade: formData.get('salaryGrade') ? parseInt(formData.get('salaryGrade') as string) : null,
+        step: formData.get('step') ? parseInt(formData.get('step') as string) : null,
+        annual_salary_authorized: formData.get('salaryAuthorized') ? parseFloat(formData.get('salaryAuthorized') as string) : null,
+        annual_salary_actual: formData.get('salaryActual') ? parseFloat(formData.get('salaryActual') as string) : null,
+
+        area_code: formData.get('areaCode') as string,
+        area_type: formData.get('areaType') as string,
+        ppa_attribution: formData.get('ppaAttribution') as string,
+
+        original_appointment_date: formData.get('appointmentDate') as string || null,
+        last_promotion_date: formData.get('promotionDate') as string || null,
         retirement_date: formData.get('retirementDate') as string || null,
         resigned_date: formData.get('resignedDate') as string || null,
-        transferred_date: formData.get('transferredDate') as string || null,
-        is_deceased: formData.get('isDeceased') === 'true',
-        file_url: formData.get('fileUrl') as string,
-        photo_url: photoUrl,
     };
 
     const { error } = await supabase

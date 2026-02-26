@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { X, User, IdCard, Briefcase, Mail, Calendar, MapPin, Phone, ShieldAlert, FileText, History, ExternalLink } from 'lucide-react';
+import { X, User, IdCard, Briefcase, Calendar, MapPin, ShieldAlert, FileText, History, ExternalLink, Banknote, GraduationCap } from 'lucide-react';
 
 interface ViewEmployeeModalProps {
     isOpen: boolean;
@@ -26,6 +26,9 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
 
     const age = calculateAge(employee.birthdate);
     const isRetiring = age >= 60;
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
+    };
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -36,199 +39,180 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
             />
 
             {/* Modal Content */}
-            <div className="relative bg-white w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-3xl shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300 flex flex-col">
+            <div className="relative bg-white w-full max-w-4xl max-h-[95vh] overflow-hidden rounded-3xl shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300 flex flex-col">
 
                 {/* Header/Banner Area */}
-                <div className="relative h-32 bg-gradient-to-r from-blue-700 to-blue-900 px-8 flex items-end">
+                <div className="relative h-40 bg-gradient-to-br from-slate-50 to-slate-100 px-8 flex items-end pb-6 border-b border-slate-200">
                     <button
                         onClick={onClose}
-                        className="absolute top-4 right-4 p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+                        className="absolute top-6 right-6 p-2.5 rounded-xl bg-white shadow-sm border border-slate-200 text-slate-400 hover:text-slate-600 transition-all hover:bg-slate-50 active:scale-95"
                     >
                         <X size={20} />
                     </button>
-                    <div className="absolute -bottom-16 left-8 flex items-end gap-6">
-                        <div className="h-32 w-32 rounded-3xl bg-white p-1.5 shadow-xl ring-1 ring-slate-200 overflow-hidden">
-                            <div className="h-full w-full rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-700 font-bold text-3xl overflow-hidden">
+
+                    <div className="flex items-end gap-8">
+                        <div className="h-32 w-32 rounded-3xl bg-white p-1.5 shadow-2xl ring-1 ring-slate-200 overflow-hidden shrink-0">
+                            <div className="h-full w-full rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-700 font-bold text-4xl overflow-hidden">
                                 {employee.photo_url ? (
-                                    <img
-                                        src={employee.photo_url}
-                                        alt={`${employee.first_name} ${employee.last_name}`}
-                                        className="w-full h-full object-cover"
-                                    />
+                                    <img src={employee.photo_url} alt={employee.first_name} className="w-full h-full object-cover" />
                                 ) : (
                                     (employee.first_name?.[0] || '') + (employee.last_name?.[0] || '')
                                 )}
                             </div>
                         </div>
-                        <div className="mb-4">
-                            <div className="flex items-center gap-3">
-                                {/* Changed text-white and drop shadow to text-slate-900 */}
-                                <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">
-                                    {employee.first_name} {employee.last_name}
+
+                        <div className="mb-2 space-y-1">
+                            <div className="flex items-center gap-3 flex-wrap">
+                                <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight">
+                                    {employee.first_name} {employee.mid_name ? `${employee.mid_name[0]}. ` : ''}{employee.last_name}
                                 </h2>
-                                {isRetiring && (
-                                    <span className="bg-amber-400 text-amber-950 text-[10px] font-black px-2 py-0.5 rounded-full ring-2 ring-slate-100">
-                                        RETIRING
-                                    </span>
-                                )}
-                                {employee.is_deceased && (
-                                    <span className="bg-slate-900 text-white text-[10px] font-black px-2 py-0.5 rounded-full ring-2 ring-slate-100">
-                                        DECEASED
-                                    </span>
-                                )}
+                                <div className="flex gap-2">
+                                    {isRetiring && <span className="bg-amber-100 text-amber-700 text-[10px] font-black px-2.5 py-1 rounded-full border border-amber-200">RETIRING</span>}
+                                    {employee.is_deceased && <span className="bg-red-100 text-red-700 text-[10px] font-black px-2.5 py-1 rounded-full border border-red-200">DECEASED</span>}
+                                    <span className="bg-blue-100 text-blue-700 text-[10px] font-black px-2.5 py-1 rounded-full border border-blue-200 uppercase">{employee.status}</span>
+                                </div>
                             </div>
-                            {/* Changed text-white to text-slate-600 */}
-                            <p className="text-slate-600 font-bold text-sm tracking-wide lowercase first-letter:uppercase mt-1">
-                                {employee.position} <span className="mx-1 text-slate-300">•</span> {employee.department || employee.dept}
+                            <p className="text-lg font-bold text-slate-500 flex items-center gap-2">
+                                {employee.position_title}
+                                <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
+                                <span className="text-blue-600">{employee.department}</span>
                             </p>
                         </div>
                     </div>
                 </div>
 
                 {/* Content Body */}
-                <div className="flex-1 overflow-y-auto pt-24 pb-8 px-8 space-y-8 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-8 space-y-10 custom-scrollbar bg-white">
 
-                    {/* Action Summary Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">System Record ID</p>
-                            <p className="text-sm font-bold text-blue-700 mt-1">#{employee.employee_id}</p>
+                    {/* Top Stats Bar */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Item Number</p>
+                            <p className="text-sm font-bold text-slate-700 font-mono tracking-tighter truncate" title={employee.item_number}>{employee.item_number || 'N/A'}</p>
                         </div>
-                        <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Classification</p>
-                            <p className="text-sm font-bold text-slate-700 mt-1">{employee.position_classification || employee.classification}</p>
+                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Salary Grade / Step</p>
+                            <p className="text-sm font-bold text-slate-700">SG {employee.salary_grade || '??'} - Step {employee.step || '?'}</p>
                         </div>
-                        <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Personnel Status</p>
-                            <div className="flex items-center gap-1.5 mt-1">
-                                <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-                                <p className="text-sm font-bold text-emerald-700">Active</p>
-                            </div>
+                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Classification</p>
+                            <p className="text-sm font-bold text-slate-700">{employee.classification}</p>
+                        </div>
+                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Level / Station</p>
+                            <p className="text-sm font-bold text-slate-700">{employee.level} Division</p>
                         </div>
                     </div>
 
-                    {/* Detailed Info Sections */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                        {/* Contact & Personal */}
-                        <div className="space-y-6">
-                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 border-b border-slate-50 pb-2">
-                                <User size={14} className="text-blue-600" />
-                                Personal Information
-                            </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+                        {/* Column 1: Personal & Eligibility */}
+                        <div className="space-y-8">
                             <div className="space-y-4">
-                                <div className="flex items-start gap-3">
-                                    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                                        <Calendar size={16} />
+                                <h3 className="text-xs font-black text-blue-600 uppercase tracking-widest flex items-center gap-2">
+                                    <User size={14} /> Personal Information
+                                </h3>
+                                <div className="space-y-4 px-1">
+                                    <div>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase">Birthdate & Age</p>
+                                        <p className="text-sm font-semibold text-slate-700">
+                                            {employee.birthdate ? new Date(employee.birthdate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                                            <span className="text-slate-400 ml-2">({age} y/o)</span>
+                                        </p>
                                     </div>
                                     <div>
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase">Age / Birthdate</p>
-                                        <p className="text-sm font-semibold text-slate-700">{age} Years Old ({employee.birthdate ? new Date(employee.birthdate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'})</p>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase">Sex / Gender</p>
+                                        <p className="text-sm font-semibold text-slate-700">{employee.sex || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase">TIN Number</p>
+                                        <p className="text-sm font-semibold text-slate-700 font-mono tracking-wider">{employee.tin || 'N/A'}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <h3 className="text-xs font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2">
+                                    <IdCard size={14} /> Eligibility
+                                </h3>
+                                <div className="px-1">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase">CS Eligibility</p>
+                                    <p className="text-sm font-semibold text-slate-700 mt-1">{employee.civil_service_eligibility || 'None Stated'}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Column 2: Compensation & Area */}
+                        <div className="space-y-8">
+                            <div className="space-y-4">
+                                <h3 className="text-xs font-black text-amber-600 uppercase tracking-widest flex items-center gap-2">
+                                    <Banknote size={14} /> Compensation
+                                </h3>
+                                <div className="space-y-4 px-1">
+                                    <div>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase">Annual (Authorized)</p>
+                                        <p className="text-lg font-black text-slate-800">{employee.annual_salary_authorized ? formatCurrency(employee.annual_salary_authorized) : '₱ 0.00'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase">Annual (Actual)</p>
+                                        <p className="text-lg font-black text-emerald-700">{employee.annual_salary_actual ? formatCurrency(employee.annual_salary_actual) : '₱ 0.00'}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <h3 className="text-xs font-black text-indigo-600 uppercase tracking-widest flex items-center gap-2">
+                                    <MapPin size={14} /> Location & PPA
+                                </h3>
+                                <div className="space-y-4 px-1">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase">Area Code</p>
+                                            <p className="text-sm font-semibold text-slate-700">{employee.area_code || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase">Area Type</p>
+                                            <p className="text-sm font-semibold text-slate-700">{employee.area_type || 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase">P/P/A Attribution</p>
+                                        <p className="text-sm font-semibold text-slate-700 italic">{employee.ppa_attribution || 'N/A'}</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Government Numbers */}
-                        <div className="space-y-6">
-                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 border-b border-slate-50 pb-2">
-                                <IdCard size={14} className="text-blue-600" />
-                                Government IDs
+                        {/* Column 3: Chronology */}
+                        <div className="space-y-8">
+                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <History size={14} /> Service History
                             </h3>
-                            <div className="grid grid-cols-2 gap-6">
-                                <div>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase">GSIS ID</p>
-                                    <p className="text-sm font-semibold text-slate-700 font-mono">{employee.gsis_number || '-'}</p>
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase">TIN ID</p>
-                                    <p className="text-sm font-semibold text-slate-700 font-mono">{employee.tin || '-'}</p>
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase">Pag-IBIG MID</p>
-                                    <p className="text-sm font-semibold text-slate-700 font-mono">{employee.pagibig_number || '-'}</p>
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase">PhilHealth</p>
-                                    <p className="text-sm font-semibold text-slate-700 font-mono">{employee.philhealth_number || '-'}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                            <div className="space-y-6 px-1 relative">
+                                <div className="absolute left-2 top-2 bottom-2 w-0.5 bg-slate-100" />
 
-                    {/* Service & Employment History */}
-                    <div className="space-y-6">
-                        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 border-b border-slate-50 pb-2">
-                            <History size={14} className="text-blue-600" />
-                            Employment History & Attachments
-                        </h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase">Hired Date</p>
-                                    <p className="text-sm font-semibold text-slate-700">{employee.hired_date ? new Date(employee.hired_date).toLocaleDateString() : '-'}</p>
+                                <div className="relative pl-8">
+                                    <div className="absolute left-1 top-1.5 w-2.5 h-2.5 rounded-full bg-blue-500 ring-4 ring-white" />
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase">Original Appointment</p>
+                                    <p className="text-sm font-semibold text-slate-700">{employee.original_appointment_date ? new Date(employee.original_appointment_date).toLocaleDateString() : 'No Record'}</p>
                                 </div>
-                                <div>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase">Last Promoted</p>
-                                    <p className="text-sm font-semibold text-slate-700">{employee.date_promoted ? new Date(employee.date_promoted).toLocaleDateString() : '-'}</p>
-                                </div>
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase">Last Assignment / Station</p>
-                                <p className="text-sm font-semibold text-slate-700">{employee.last_assign || 'N/A'}</p>
-                            </div>
-                        </div>
-                        {employee.file_url && (
-                            <a
-                                href={employee.file_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 p-3 bg-blue-50/50 border border-blue-100 rounded-xl text-blue-700 hover:bg-blue-100 transition-colors group"
-                            >
-                                <FileText size={18} />
-                                <span className="text-xs font-bold">View Service Record Attachment</span>
-                                <ExternalLink size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </a>
-                        )}
-                    </div>
 
-                    {/* Separation Status (Only show if any field is present) */}
-                    {(employee.retirement_date || employee.resigned_date || employee.transferred_date || employee.is_deceased) && (
-                        <div className="space-y-6">
-                            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 border-b border-red-50 pb-2">
-                                <ShieldAlert size={14} className="text-red-600" />
-                                Status & Separation Records
-                            </h3>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                                {employee.retirement_date && (
-                                    <div>
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase">Retirement Date</p>
-                                        <p className="text-sm font-semibold text-slate-700">{new Date(employee.retirement_date).toLocaleDateString()}</p>
-                                    </div>
-                                )}
-                                {employee.resigned_date && (
-                                    <div>
-                                        <p className="text-[10px] font-bold text-red-400 uppercase">Resignation Date</p>
-                                        <p className="text-sm font-semibold text-red-700">{new Date(employee.resigned_date).toLocaleDateString()}</p>
-                                    </div>
-                                )}
-                                {employee.transferred_date && (
-                                    <div>
-                                        <p className="text-[10px] font-bold text-indigo-400 uppercase">Transfer Date</p>
-                                        <p className="text-sm font-semibold text-indigo-700">{new Date(employee.transferred_date).toLocaleDateString()}</p>
+                                <div className="relative pl-8">
+                                    <div className="absolute left-1 top-1.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-white" />
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase">Last Promotion</p>
+                                    <p className="text-sm font-semibold text-slate-700">{employee.last_promotion_date ? new Date(employee.last_promotion_date).toLocaleDateString() : 'None'}</p>
+                                </div>
+
+                                {(employee.retirement_date || employee.resigned_date) && (
+                                    <div className="relative pl-8">
+                                        <div className="absolute left-1 top-1.5 w-2.5 h-2.5 rounded-full bg-red-500 ring-4 ring-white" />
+                                        <p className="text-[10px] font-bold text-red-400 uppercase">Separation Schedule</p>
+                                        <p className="text-sm font-semibold text-red-700">
+                                            {employee.retirement_date ? `Retired: ${new Date(employee.retirement_date).toLocaleDateString()}` : ''}
+                                            {employee.resigned_date ? `Resigned: ${new Date(employee.resigned_date).toLocaleDateString()}` : ''}
+                                        </p>
                                     </div>
                                 )}
                             </div>
-                        </div>
-                    )}
-
-                    {/* Employment Status Notice */}
-                    <div className="p-6 bg-blue-50 rounded-2xl border border-blue-100 flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-xl bg-white shadow-sm flex items-center justify-center text-blue-700">
-                            <Briefcase size={24} />
-                        </div>
-                        <div>
-                            <h4 className="text-sm font-bold text-blue-900">Assigned to {employee.department || employee.dept} Department</h4>
-                            <p className="text-xs text-blue-700 mt-0.5">Currently serving as a {employee.position} with {employee.position_classification || employee.classification} Personnel classification.</p>
                         </div>
                     </div>
                 </div>
@@ -237,9 +221,9 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
                 <div className="px-8 py-6 bg-slate-50 border-t border-slate-100 flex items-center justify-end">
                     <button
                         onClick={onClose}
-                        className="px-8 py-2.5 rounded-xl bg-white border border-slate-200 font-bold text-slate-600 hover:bg-slate-100 hover:border-slate-300 transition-all active:scale-95 shadow-sm"
+                        className="px-10 py-2.5 rounded-xl bg-white border border-slate-200 font-bold text-slate-600 hover:bg-slate-100 transition-all active:scale-95 shadow-sm"
                     >
-                        Close Profile
+                        Return to List
                     </button>
                 </div>
             </div>
