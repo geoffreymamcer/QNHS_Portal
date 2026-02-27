@@ -1,8 +1,22 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Upload, User, IdCard, Briefcase, Info, Save, ShieldAlert, GraduationCap, Banknote, MapPin } from 'lucide-react';
+import { X, Upload, User, Briefcase, Info, Save, ShieldAlert, GraduationCap, Banknote, MapPin, CheckCircle } from 'lucide-react';
 import { updateEmployee } from './actions';
+import { createClient } from '@/utils/supabase/client';
+
+interface Position {
+    item_number: string;
+    position_title: string;
+    classification: string;
+    department: string | null;
+    level: string | null;
+    salary_grade: number | null;
+    annual_salary_authorized: number | null;
+    area_code: string | null;
+    area_type: string | null;
+    is_active: boolean;
+}
 
 interface EditEmployeeModalProps {
     isOpen: boolean;
@@ -23,6 +37,7 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
         birthdate: '',
         tin: '',
         eligibility: '',
+        licenseExpirationDate: '',
         isDeceased: 'false',
 
         positionTitle: '',
@@ -49,6 +64,8 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
 
     const [photo, setPhoto] = useState<File | null>(null);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+    const [positions, setPositions] = useState<Position[]>([]);
+    const [activeItemNumbers, setActiveItemNumbers] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         if (employee) {
@@ -61,6 +78,7 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
                 birthdate: employee.birthdate || '',
                 tin: employee.tin || '',
                 eligibility: employee.civil_service_eligibility || '',
+                licenseExpirationDate: employee.license_expiration_date || '',
                 isDeceased: employee.is_deceased ? 'true' : 'false',
 
                 positionTitle: employee.position_title || '',
@@ -87,6 +105,52 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
             setPhotoPreview(employee.photo_url || null);
         }
     }, [employee]);
+
+    // Fetch all positions and compute which are currently held
+    useEffect(() => {
+        const fetchPositions = async () => {
+            const supabase = createClient();
+            const [{ data: posData }, { data: empData }] = await Promise.all([
+                supabase.from('positions').select('*').eq('is_active', true).order('position_title'),
+                supabase.from('employees').select('item_number, resigned_date, retirement_date, is_deceased'),
+            ]);
+            if (posData) setPositions(posData);
+            if (empData) {
+                const now = new Date();
+                // Exclude the current employee's item_number so their own slot shows as available
+                const held = new Set(
+                    empData
+                        .filter(e => !e.is_deceased &&
+                            !(e.resigned_date && new Date(e.resigned_date) <= now) &&
+                            !(e.retirement_date && new Date(e.retirement_date) <= now))
+                        .map(e => e.item_number)
+                        .filter(Boolean)
+                );
+                setActiveItemNumbers(held);
+            }
+        };
+        fetchPositions();
+    }, []);
+
+    const handlePositionSelect = (itemNumber: string) => {
+        const pos = positions.find(p => p.item_number === itemNumber);
+        if (!pos) {
+            setFormData(prev => ({ ...prev, itemNumber: '' }));
+            return;
+        }
+        setFormData(prev => ({
+            ...prev,
+            itemNumber: pos.item_number,
+            positionTitle: pos.position_title,
+            classification: pos.classification,
+            department: pos.department || prev.department,
+            level: pos.level || prev.level,
+            salaryGrade: pos.salary_grade?.toString() || prev.salaryGrade,
+            salaryAuthorized: pos.annual_salary_authorized?.toString() || prev.salaryAuthorized,
+            areaCode: pos.area_code || prev.areaCode,
+            areaType: pos.area_type || prev.areaType,
+        }));
+    };
 
     if (!isOpen || !employee) return null;
 
@@ -280,6 +344,10 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
                                 <label className="text-xs font-bold text-slate-600 ml-1">Civil Service Eligibility</label>
                                 <input name="eligibility" value={formData.eligibility} onChange={handleInputChange} type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
                             </div>
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-slate-600 ml-1">License Expiration</label>
+                                <input name="licenseExpirationDate" value={formData.licenseExpirationDate} onChange={handleInputChange} type="date" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                            </div>
                         </div>
                     </div>
 
@@ -293,8 +361,31 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
                         </p>
                         <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
                             <div className="space-y-1.5 sm:col-span-2">
-                                <label className="text-xs font-bold text-slate-600 ml-1 text-emerald-700">Item Number (Fixed)</label>
-                                <input name="itemNumber" value={formData.itemNumber} onChange={handleInputChange} type="text" className="w-full bg-emerald-50/30 border border-emerald-100 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-emerald-600/20 focus:bg-white transition-all outline-none font-mono" />
+                                <label className="text-xs font-bold text-emerald-700 ml-1 flex items-center gap-1.5">
+                                    <CheckCircle size={12} />
+                                    Plantilla Position
+                                </label>
+                                <select
+                                    value={formData.itemNumber}
+                                    onChange={(e) => handlePositionSelect(e.target.value)}
+                                    className="w-full bg-emerald-50/40 border border-emerald-100 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-emerald-600/10 transition-all outline-none"
+                                >
+                                    <option value="">— No position assigned —</option>
+                                    {positions.map(pos => {
+                                        const isCurrentlyHeld = activeItemNumbers.has(pos.item_number)
+                                            && pos.item_number !== formData.itemNumber;
+                                        return (
+                                            <option key={pos.item_number} value={pos.item_number}>
+                                                {pos.position_title} · SG{pos.salary_grade} {isCurrentlyHeld ? '(Filled)' : '✦ VACANT'}
+                                            </option>
+                                        );
+                                    })}
+                                </select>
+                                {formData.itemNumber && (
+                                    <p className="text-[10px] font-mono text-emerald-700 mt-1 truncate" title={formData.itemNumber}>
+                                        {formData.itemNumber}
+                                    </p>
+                                )}
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-600 ml-1">Salary Grade</label>

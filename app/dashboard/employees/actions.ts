@@ -52,6 +52,7 @@ export async function createEmployee(formData: FormData) {
         step: formData.get('step') ? parseInt(formData.get('step') as string) : null,
         annual_salary_authorized: formData.get('salaryAuthorized') ? parseFloat(formData.get('salaryAuthorized') as string) : null,
         annual_salary_actual: formData.get('salaryActual') ? parseFloat(formData.get('salaryActual') as string) : null,
+        license_expiration_date: formData.get('licenseExpirationDate') as string || null,
 
         area_code: formData.get('areaCode') as string,
         area_type: formData.get('areaType') as string,
@@ -121,6 +122,7 @@ export async function updateEmployee(id: string, formData: FormData) {
         step: formData.get('step') ? parseInt(formData.get('step') as string) : null,
         annual_salary_authorized: formData.get('salaryAuthorized') ? parseFloat(formData.get('salaryAuthorized') as string) : null,
         annual_salary_actual: formData.get('salaryActual') ? parseFloat(formData.get('salaryActual') as string) : null,
+        license_expiration_date: formData.get('licenseExpirationDate') as string || null,
 
         area_code: formData.get('areaCode') as string,
         area_type: formData.get('areaType') as string,

@@ -37,13 +37,57 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
     const [selectedDept, setSelectedDept] = useState('All');
     const [selectedPos, setSelectedPos] = useState('All');
     const [selectedClass, setSelectedClass] = useState('All');
+    const [selectedStatusFilter, setSelectedStatusFilter] = useState<'All' | 'license_expiring' | 'retiring' | 'newly_hired'>('All');
 
     const departments = useMemo(() => Array.from(new Set(initialEmployees.map(e => e.department).filter(Boolean))).sort(), [initialEmployees]);
     const positions = useMemo(() => Array.from(new Set(initialEmployees.map(e => e.position_title).filter(Boolean))).sort(), [initialEmployees]);
     const classifications = useMemo(() => Array.from(new Set(initialEmployees.map(e => e.classification).filter(Boolean))).sort(), [initialEmployees]);
 
+    // --- Status helper functions ---
+    const CURRENT_YEAR = new Date().getFullYear();
+
+    const isLicenseExpiringThisYear = (emp: any): boolean => {
+        if (!emp.license_expiration_date) return false;
+        return new Date(emp.license_expiration_date).getFullYear() === CURRENT_YEAR;
+    };
+
+    const isRetiringThisYear = (emp: any): boolean => {
+        // Primary: explicit retirement_date field falls in current year
+        if (emp.retirement_date) {
+            return new Date(emp.retirement_date).getFullYear() === CURRENT_YEAR;
+        }
+        // Fallback: employee turns 65 this year (Philippine gov't compulsory retirement age)
+        if (emp.birthdate) {
+            const birthYear = new Date(emp.birthdate).getFullYear();
+            return (CURRENT_YEAR - birthYear) === 65;
+        }
+        return false;
+    };
+
+    const isNewlyHiredThisYear = (emp: any): boolean => {
+        if (!emp.original_appointment_date) return false;
+        return new Date(emp.original_appointment_date).getFullYear() === CURRENT_YEAR;
+    };
+
+    // --- Precomputed status flags per employee ---
+    const employeesWithStatus = useMemo(() =>
+        initialEmployees.map(emp => ({
+            ...emp,
+            _licenseExpiring: isLicenseExpiringThisYear(emp),
+            _retiring: isRetiringThisYear(emp),
+            _newlyHired: isNewlyHiredThisYear(emp),
+        })),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [initialEmployees]
+    );
+
+    // Quick-filter pill counts (always reflects full list)
+    const licenseExpiringCount = useMemo(() => employeesWithStatus.filter(e => e._licenseExpiring).length, [employeesWithStatus]);
+    const retiringCount = useMemo(() => employeesWithStatus.filter(e => e._retiring).length, [employeesWithStatus]);
+    const newlyHiredCount = useMemo(() => employeesWithStatus.filter(e => e._newlyHired).length, [employeesWithStatus]);
+
     const filteredEmployees = useMemo(() => {
-        return initialEmployees.filter(emp => {
+        return employeesWithStatus.filter(emp => {
             const fullName = `${emp.first_name || ''} ${emp.last_name || ''}`.toLowerCase();
             const matchesSearch = fullName.includes(searchQuery.toLowerCase()) ||
                 (emp.employee_id && emp.employee_id.includes(searchQuery)) ||
@@ -53,9 +97,15 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
             const matchesPos = selectedPos === 'All' || emp.position_title === selectedPos;
             const matchesClass = selectedClass === 'All' || emp.classification === selectedClass;
 
-            return matchesSearch && matchesDept && matchesPos && matchesClass;
+            const matchesStatus =
+                selectedStatusFilter === 'All' ||
+                (selectedStatusFilter === 'license_expiring' && emp._licenseExpiring) ||
+                (selectedStatusFilter === 'retiring' && emp._retiring) ||
+                (selectedStatusFilter === 'newly_hired' && emp._newlyHired);
+
+            return matchesSearch && matchesDept && matchesPos && matchesClass && matchesStatus;
         });
-    }, [initialEmployees, searchQuery, selectedDept, selectedPos, selectedClass]);
+    }, [employeesWithStatus, searchQuery, selectedDept, selectedPos, selectedClass, selectedStatusFilter]);
 
     const calculateAge = (birthdate: string) => {
         if (!birthdate) return 0;
@@ -70,6 +120,18 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
     };
 
     const isRetiring = (birthdate: string) => calculateAge(birthdate) >= 60;
+
+    const clearAllFilters = () => {
+        setSearchQuery('');
+        setSelectedDept('All');
+        setSelectedPos('All');
+        setSelectedClass('All');
+        setSelectedStatusFilter('All');
+    };
+
+    const toggleStatusFilter = (filter: 'license_expiring' | 'retiring' | 'newly_hired') => {
+        setSelectedStatusFilter(prev => prev === filter ? 'All' : filter);
+    };
 
     // Handlers for action modals
     const handleView = (emp: any) => {
@@ -161,6 +223,56 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
                 </div>
             </div>
 
+            {/* Quick-Filter Status Pills */}
+            <div className="bg-white px-6 py-4 rounded-2xl border border-slate-200 shadow-sm">
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">Quick Filters</p>
+                <div className="flex flex-wrap gap-2">
+                    {/* License Expiring This Year */}
+                    <button
+                        onClick={() => toggleStatusFilter('license_expiring')}
+                        className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all ${selectedStatusFilter === 'license_expiring'
+                            ? 'bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                            }`}
+                    >
+                        License Expiring This Year
+                        <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-black ${selectedStatusFilter === 'license_expiring' ? 'bg-white/30 text-white' : 'bg-amber-200 text-amber-800'
+                            }`}>
+                            {licenseExpiringCount}
+                        </span>
+                    </button>
+
+                    {/* Retiring This Year */}
+                    <button
+                        onClick={() => toggleStatusFilter('retiring')}
+                        className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all ${selectedStatusFilter === 'retiring'
+                            ? 'bg-rose-500 text-white border-rose-500 shadow-md shadow-rose-200'
+                            : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                            }`}
+                    >
+                        Retiring This Year
+                        <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-black ${selectedStatusFilter === 'retiring' ? 'bg-white/30 text-white' : 'bg-rose-200 text-rose-800'
+                            }`}>
+                            {retiringCount}
+                        </span>
+                    </button>
+
+                    {/* Newly Hired This Year */}
+                    <button
+                        onClick={() => toggleStatusFilter('newly_hired')}
+                        className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all ${selectedStatusFilter === 'newly_hired'
+                            ? 'bg-emerald-500 text-white border-emerald-500 shadow-md shadow-emerald-200'
+                            : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                            }`}
+                    >
+                        Newly Hired This Year
+                        <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-black ${selectedStatusFilter === 'newly_hired' ? 'bg-white/30 text-white' : 'bg-emerald-200 text-emerald-800'
+                            }`}>
+                            {newlyHiredCount}
+                        </span>
+                    </button>
+                </div>
+            </div>
             {/* Employee Table */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
@@ -180,7 +292,7 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
                                     <tr key={emp.id} className="hover:bg-blue-50/30 transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-700 font-bold border border-blue-200 shadow-sm group-hover:scale-110 transition-all overflow-hidden">
+                                                <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-700 font-bold border border-blue-200 shadow-sm group-hover:scale-110 transition-all overflow-hidden shrink-0">
                                                     {emp.photo_url ? (
                                                         <img
                                                             src={emp.photo_url}
@@ -194,6 +306,26 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
                                                 <div>
                                                     <p className="text-sm font-bold text-slate-800">{emp.first_name} {emp.last_name}</p>
                                                     <p className="text-[11px] text-slate-400 font-medium">ID: {emp.employee_id}</p>
+                                                    {/* Status Badges */}
+                                                    {(emp._licenseExpiring || emp._retiring || emp._newlyHired) && (
+                                                        <div className="flex flex-wrap gap-1 mt-1">
+                                                            {emp._licenseExpiring && (
+                                                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-amber-100 text-amber-700 border border-amber-200">
+                                                                    📋 License Expiring
+                                                                </span>
+                                                            )}
+                                                            {emp._retiring && (
+                                                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-rose-100 text-rose-700 border border-rose-200">
+                                                                    🎂 Retiring
+                                                                </span>
+                                                            )}
+                                                            {emp._newlyHired && (
+                                                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                                                    🆕 Newly Hired
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </td>
@@ -254,12 +386,7 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
                                             <Filter size={40} className="mb-4 opacity-20" />
                                             <p className="font-medium">No results found for your search criteria.</p>
                                             <button
-                                                onClick={() => {
-                                                    setSearchQuery('');
-                                                    setSelectedDept('All');
-                                                    setSelectedPos('All');
-                                                    setSelectedClass('All');
-                                                }}
+                                                onClick={clearAllFilters}
                                                 className="mt-2 text-blue-600 hover:underline text-sm font-semibold"
                                             >
                                                 Clear all filters

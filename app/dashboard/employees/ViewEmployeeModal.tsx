@@ -134,9 +134,17 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
                                 <h3 className="text-xs font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2">
                                     <IdCard size={14} /> Eligibility
                                 </h3>
-                                <div className="px-1">
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase">CS Eligibility</p>
-                                    <p className="text-sm font-semibold text-slate-700 mt-1">{employee.civil_service_eligibility || 'None Stated'}</p>
+                                <div className="space-y-4 px-1">
+                                    <div>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase">CS Eligibility</p>
+                                        <p className="text-sm font-semibold text-slate-700 mt-1">{employee.civil_service_eligibility || 'None Stated'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase">License Expiration</p>
+                                        <p className="text-sm font-semibold text-slate-700 mt-1">
+                                            {employee.license_expiration_date ? new Date(employee.license_expiration_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
