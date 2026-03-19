@@ -1,114 +1,198 @@
--- 1. Create Admins Table
-CREATE TABLE admins (
-    id UUID PRIMARY KEY REFERENCES auth.users ON DELETE CASCADE,
-    name TEXT NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    gender TEXT,
-    dob DATE,
-    profile_pic TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+-- ENUMS for standardizing fixed values (Optional but highly recommended)
+CREATE TYPE gender_enum AS ENUM ('Male', 'Female', 'Other', 'Prefer Not to Say');
+CREATE TYPE employment_status AS ENUM ('Active', 'Resigned', 'Retired', 'Terminated', 'On Leave');
 
--- 2. Create Positions Table (Permanent Plantilla Slots)
--- Item numbers are permanent. A position is "vacant" when no active employee holds it.
-CREATE TABLE positions (
-    item_number TEXT PRIMARY KEY,
-    position_title TEXT NOT NULL,
-    classification TEXT NOT NULL,  -- Teaching / Non-Teaching
-    department TEXT,
-    level TEXT,                    -- Secondary, Elementary, Senior High
-    salary_grade INTEGER,
-    annual_salary_authorized DECIMAL(12, 2),
-    area_code TEXT,
-    area_type TEXT,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,  -- FALSE = abolished/removed
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+-- 1. Lookups / Reference Tables
+-- Extracted from your string fields to ensure data consistency
+CREATE TABLE public.departments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL UNIQUE,
+  code text NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT departments_pkey PRIMARY KEY (id)
+) TABLESPACE pg_default;
 
--- 3. Create Employees Table (People who occupy positions)
-CREATE TABLE employees (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    employee_id TEXT UNIQUE NOT NULL,  -- e.g. 2024-001 (Internal System ID)
-    photo_url TEXT,
+CREATE TABLE public.salary_grades (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  grade integer NOT NULL,
+  step integer NOT NULL DEFAULT 1,
+  salary numeric(12, 2) NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT salary_grades_pkey PRIMARY KEY (id),
+  CONSTRAINT unique_grade_step UNIQUE (grade, step) -- A grade+step should only have one salary
+) TABLESPACE pg_default;
 
-    -- Personal Information
-    first_name TEXT NOT NULL,
-    mid_name TEXT,
-    last_name TEXT NOT NULL,
-    birthdate DATE,
-    sex TEXT,
-    tin TEXT,
-    civil_service_eligibility TEXT,
-    is_deceased BOOLEAN DEFAULT FALSE,
+-- 2. Positions Table
+-- Cleaned up: Uses UUID as Primary Key, links to Lookups, removed redundant employee data
+CREATE TABLE public.positions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  item_number text NOT NULL,
+  title text NOT NULL,
+  department_id uuid NULL,
+  salary_grade_id uuid NULL,
+  classification text NOT NULL,
+  level text NULL,
+  area_code text NULL,
+  area_type text NULL,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT positions_pkey PRIMARY KEY (id),
+  CONSTRAINT positions_item_number_key UNIQUE (item_number),
+  CONSTRAINT positions_department_fkey FOREIGN KEY (department_id) REFERENCES public.departments(id) ON DELETE SET NULL,
+  CONSTRAINT positions_salary_fkey FOREIGN KEY (salary_grade_id) REFERENCES public.salary_grades(id) ON DELETE SET NULL
+) TABLESPACE pg_default;
 
-    -- Employment Details
-    position_title TEXT NOT NULL,
-    classification TEXT NOT NULL,  -- e.g. Teaching / Non-Teaching
-    department TEXT,               -- e.g. Mathematics, Administration
-    status TEXT,                   -- e.g. Permanent, Contractual
-    level TEXT,                    -- e.g. Elementary, Secondary
+-- 3. Employees Table
+-- Cleaned up: Standardized names, removed duplicated position data, linked to Positions table
+CREATE TABLE public.employees (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  employee_id text NOT NULL,
+  position_id uuid NULL, -- THIS replaces classification, department, level, item_number, area_code
+  
+  -- Personal Details
+  first_name text NOT NULL,
+  middle_name text NULL,
+  last_name text NOT NULL,
+  birth_date date NULL,
+  gender gender_enum NULL,
+  civil_service_eligibility text NULL,
+  tin text NULL,
+  photo_url text NULL,
+  is_deceased boolean DEFAULT false,
 
-    -- Plantilla / Position Info (soft reference to positions.item_number)
-    item_number TEXT,              -- References positions.item_number (no FK to preserve history)
-    salary_grade INTEGER,
-    step INTEGER,
-    annual_salary_authorized DECIMAL(12, 2),
-    annual_salary_actual DECIMAL(12, 2),
+  -- Employment & Salary Details
+  status employment_status DEFAULT 'Active',
+  actual_salary numeric(12, 2) NULL, -- Only needed if different from the salary_grade amount
+  ppa_attribution text NULL,
+  license_expiration_date date NULL,
 
-    -- License / Eligibility Info
-    license_expiration_date DATE,
+  -- Dates
+  original_appointment_date date NULL,
+  last_promotion_date date NULL,
+  retirement_date date NULL,
+  resigned_date date NULL,
+  
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT employees_pkey PRIMARY KEY (id),
+  CONSTRAINT employees_employee_id_key UNIQUE (employee_id),
+  CONSTRAINT employees_position_fkey FOREIGN KEY (position_id) REFERENCES public.positions(id) ON DELETE SET NULL
+) TABLESPACE pg_default;
 
-    -- Area Info
-    area_code TEXT,
-    area_type TEXT,
+-- 4. Applicants Table
+-- Cleaned up: Standardized names to match employees, linked applied position to the actual positions table
+CREATE TABLE public.applicants (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  ies_no text NOT NULL,
+  applicant_code text NOT NULL,
+  applied_position_id uuid NOT NULL, -- Replaced string with Foreign Key
+  
+  -- Standardized Personal Details
+  first_name text NOT NULL,
+  middle_name text NULL,
+  last_name text NOT NULL,
+  name_extension text NULL,
+  birth_date date NULL, -- Replaced "age" (Age should be calculated dynamically from birth_date)
+  gender gender_enum NULL,
+  civil_status text NULL,
+  religion text NULL,
+  disability text NULL,
+  ethnic_group text NULL,
+  
+  -- Contact Details
+  email text NULL,
+  contact_no text NULL,
+  address text NULL,
+  
+  -- Resume Details
+  eligibility text NULL,
+  education jsonb DEFAULT '[]'::jsonb,
+  trainings jsonb DEFAULT '[]'::jsonb,
+  experiences jsonb DEFAULT '[]'::jsonb,
+  
+  status text NULL,
+  performance text NULL,
+  hiring_date date NOT NULL DEFAULT CURRENT_DATE,
+  
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT applicants_pkey PRIMARY KEY (id),
+  CONSTRAINT applicants_applicant_code_key UNIQUE (applicant_code),
+  CONSTRAINT applicants_ies_no_key UNIQUE (ies_no),
+  CONSTRAINT applicants_position_fkey FOREIGN KEY (applied_position_id) REFERENCES public.positions(id) ON DELETE CASCADE
+) TABLESPACE pg_default;
 
-    -- Assignment / Attribution
-    ppa_attribution TEXT,
+-- 5. Admins Table
+-- Cleaned up: Standardized names to match everyone else
+CREATE TABLE public.admins (
+  id uuid NOT NULL,
+  first_name text NOT NULL,
+  last_name text NOT NULL,
+  email text NOT NULL,
+  gender gender_enum NULL,
+  birth_date date NULL,
+  profile_pic text NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT admins_pkey PRIMARY KEY (id),
+  CONSTRAINT admins_email_key UNIQUE (email),
+  CONSTRAINT admins_id_fkey FOREIGN KEY (id) REFERENCES auth.users (id) ON DELETE CASCADE
+) TABLESPACE pg_default;
 
-    -- Key Dates
-    original_appointment_date DATE,
-    last_promotion_date DATE,
-    retirement_date DATE,
-    resigned_date DATE,
 
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 4. Enable RLS
+-- ENABLE RLS
 ALTER TABLE admins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE positions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE employees ENABLE ROW LEVEL SECURITY;
+ALTER TABLE applicants ENABLE ROW LEVEL SECURITY;
+ALTER TABLE salary_grades ENABLE ROW LEVEL SECURITY;
 
 -- 5. Admins Policies
+DROP POLICY IF EXISTS "Admins can view own profile" ON admins;
 CREATE POLICY "Admins can view own profile"
 ON admins FOR SELECT
 TO authenticated
 USING (auth.uid() = id);
 
 -- 6. Positions Policies
+DROP POLICY IF EXISTS "Admins can manage positions" ON positions;
 CREATE POLICY "Admins can manage positions"
 ON positions FOR ALL
 TO authenticated
-USING (
-    EXISTS (
-        SELECT 1 FROM admins WHERE id = auth.uid()
-    )
-);
+USING (EXISTS (SELECT 1 FROM admins WHERE id = auth.uid()));
 
 -- 7. Employees Policies
+DROP POLICY IF EXISTS "Admins can manage employees" ON employees;
 CREATE POLICY "Admins can manage employees"
 ON employees FOR ALL
 TO authenticated
-USING (
-    EXISTS (
-        SELECT 1 FROM admins WHERE id = auth.uid()
-    )
-);
+USING (EXISTS (SELECT 1 FROM admins WHERE id = auth.uid()));
+
+-- 11. Applicants Policies
+DROP POLICY IF EXISTS "Admins can manage applicants" ON applicants;
+CREATE POLICY "Admins can manage applicants"
+ON applicants FOR ALL
+TO authenticated
+USING (EXISTS (SELECT 1 FROM admins WHERE id = auth.uid()));
+
+-- 12. Salary Grades Policies
+DROP POLICY IF EXISTS "Admins can manage salary grades" ON salary_grades;
+CREATE POLICY "Admins can manage salary grades"
+ON salary_grades FOR ALL
+TO authenticated
+USING (EXISTS (SELECT 1 FROM admins WHERE id = auth.uid()));
+
+DROP POLICY IF EXISTS "Authenticated users can view salary grades" ON salary_grades;
+CREATE POLICY "Authenticated users can view salary grades"
+ON salary_grades FOR SELECT
+TO authenticated
+USING (TRUE);
 
 -- 8. Storage Policies
+DROP POLICY IF EXISTS "Admins can upload photos" ON storage.objects;
 CREATE POLICY "Admins can upload photos"
 ON storage.objects FOR INSERT
 TO authenticated
@@ -117,11 +201,13 @@ WITH CHECK (
     EXISTS (SELECT 1 FROM public.admins WHERE id = auth.uid())
 );
 
+DROP POLICY IF EXISTS "Public can view employee photos" ON storage.objects;
 CREATE POLICY "Public can view employee photos"
 ON storage.objects FOR SELECT
 TO public
 USING (bucket_id = 'employee-photos');
 
+DROP POLICY IF EXISTS "Public can view own uploads" ON storage.objects;
 CREATE POLICY "Public can view own uploads"
   ON storage.objects
   FOR SELECT
@@ -131,6 +217,7 @@ CREATE POLICY "Public can view own uploads"
     (storage.foldername(name))[1] = (SELECT auth.uid())::text
   );
 
+DROP POLICY IF EXISTS "Admins can update photos" ON storage.objects;
 CREATE POLICY "Admins can update photos"
 ON storage.objects FOR UPDATE
 TO authenticated
@@ -139,6 +226,7 @@ USING (
     EXISTS (SELECT 1 FROM public.admins WHERE id = auth.uid())
 );
 
+DROP POLICY IF EXISTS "Admins can delete photos" ON storage.objects;
 CREATE POLICY "Admins can delete photos"
 ON storage.objects FOR DELETE
 TO authenticated
@@ -146,105 +234,3 @@ USING (
     bucket_id = 'employee-photos' AND
     EXISTS (SELECT 1 FROM public.admins WHERE id = auth.uid())
 );
-
-
--- ─────────────────────────────────────────────
--- MIGRATION SCRIPT (Run once in Supabase SQL Editor if upgrading from old schema)
--- ─────────────────────────────────────────────
--- Step 1: Create the positions table (run CREATE TABLE above first)
--- Step 2: Seed positions from existing employee data:
---
--- INSERT INTO positions (
---     item_number, position_title, classification,
---     department, level, salary_grade, annual_salary_authorized
--- )
--- SELECT DISTINCT ON (item_number)
---     item_number, position_title, classification,
---     department, level, salary_grade, annual_salary_authorized
--- FROM employees
--- WHERE item_number IS NOT NULL AND item_number != ''
--- ON CONFLICT (item_number) DO NOTHING;
--- ─────────────────────────────────────────────
-
-
--- DUMMY DATA SEED
--- ─────────────────────────────────────────────
--- BULK DUMMY DATA GENERATION (400 Positions & 400 Employees)
--- Run this in Supabase SQL Editor to populate the system for testing.
--- ─────────────────────────────────────────────
-
-DO $$
-DECLARE
-    i INTEGER;
-    v_dept TEXT;
-    v_class TEXT;
-    v_gender TEXT;
-    v_surname TEXT[];
-    v_first_name TEXT[];
-    v_depts TEXT[] := ARRAY['Mathematics', 'Science', 'English', 'Filipino', 'MAPEH', 'AP', 'TLE', 'ESP', 'Administration'];
-BEGIN
-    v_surname := ARRAY['Garcia', 'Reyes', 'Dela Cruz', 'Santos', 'Mendoza', 'Bautista', 'Pascual', 'Villanueva', 'Quizon', 'Aquino'];
-    v_first_name := ARRAY['Juan', 'Maria', 'Jose', 'Elena', 'Ricardo', 'Liza', 'Manuel', 'Corazon', 'Antonio', 'Teresa'];
-
-    -- 1. Generate 400 Positions
-    FOR i IN 1..400 LOOP
-        v_dept := v_depts[(i % 9) + 1];
-        v_class := CASE WHEN v_dept = 'Administration' THEN 'Non-Teaching' ELSE 'Teaching' END;
-        
-        INSERT INTO positions (
-            item_number, position_title, classification, department, level, salary_grade, annual_salary_authorized
-        ) VALUES (
-            'OSEC-DECSB-POS-' || LPAD(i::text, 6, '0') || '-2025',
-            CASE 
-                WHEN v_class = 'Non-Teaching' THEN 'Admin Officer ' || ((i % 5) + 1)
-                ELSE 'Teacher ' || ((i % 3) + 1)
-            END,
-            v_class,
-            v_dept,
-            'Secondary',
-            CASE WHEN v_class = 'Non-Teaching' THEN 10 + (i % 8) ELSE 11 + (i % 5) END,
-            300000 + (i * 1000)
-        ) ON CONFLICT DO NOTHING;
-    END LOOP;
-
-    -- 2. Generate 400 Employees
-    FOR i IN 1..400 LOOP
-        v_dept := v_depts[(i % 9) + 1];
-        v_class := CASE WHEN v_dept = 'Administration' THEN 'Non-Teaching' ELSE 'Teaching' END;
-        v_gender := CASE WHEN i % 2 = 0 THEN 'Female' ELSE 'Male' END;
-        
-        INSERT INTO employees (
-            employee_id, first_name, last_name, mid_name, sex, birthdate,
-            position_title, classification, department, level, status,
-            item_number, salary_grade, original_appointment_date, is_deceased
-        ) VALUES (
-            '2025-' || LPAD(i::text, 4, '0'),
-            v_first_name[(i % 10) + 1],
-            v_surname[((i+5) % 10) + 1],
-            'D.',
-            v_gender,
-            DATE '1970-01-01' + (i * INTERVAL '35 days'), -- Distributed ages
-            CASE 
-                WHEN v_class = 'Non-Teaching' THEN 'Admin Officer ' || ((i % 5) + 1)
-                ELSE 'Teacher ' || ((i % 3) + 1)
-            END,
-            v_class,
-            v_dept,
-            'Secondary',
-            'Permanent',
-            'OSEC-DECSB-POS-' || LPAD(i::text, 6, '0') || '-2025',
-            CASE WHEN v_class = 'Non-Teaching' THEN 10 + (i % 8) ELSE 11 + (i % 5) END,
-            DATE '2010-01-01' + (i * INTERVAL '12 days'),
-            (i % 50 = 0) -- Every 50th is deceased
-        );
-
-        -- Add some Separation cases (Resigned / Retired)
-        IF i % 15 = 0 THEN
-            UPDATE employees SET resigned_date = DATE '2025-01-01' + (i * INTERVAL '1 day') 
-            WHERE employee_id = '2025-' || LPAD(i::text, 4, '0');
-        ELSIF i % 20 = 0 THEN
-            UPDATE employees SET retirement_date = DATE '2024-12-01' + (i * INTERVAL '1 day')
-            WHERE employee_id = '2025-' || LPAD(i::text, 4, '0');
-        END IF;
-    END LOOP;
-END $$;

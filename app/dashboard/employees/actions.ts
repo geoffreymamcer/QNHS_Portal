@@ -160,3 +160,73 @@ export async function deleteEmployee(id: string) {
 
     revalidatePath('/dashboard/employees');
 }
+
+export async function getVacantPositions() {
+    const supabase = await createClient();
+
+    // 1. Get all item_numbers currently held by active employees
+    const { data: occupiedItems } = await supabase
+        .from('employees')
+        .select('item_number')
+        .is('resigned_date', null)
+        .is('retirement_date', null)
+        .eq('is_deceased', false);
+
+    const occupiedList = occupiedItems?.map(e => e.item_number).filter(Boolean) || [];
+
+    // 2. Fetch positions that are active and not in the occupied list
+    let query = supabase
+        .from('positions')
+        .select('*')
+        .eq('is_active', true)
+        .order('item_number');
+
+    if (occupiedList.length > 0) {
+        // Construct the in filter string correctly with quotes for item numbers
+        const inFilter = `(${occupiedList.map(item => `"${item}"`).join(',')})`;
+        query = query.not('item_number', 'in', inFilter);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    return data;
+}
+
+export async function getUniqueDepartments() {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+        .from('positions')
+        .select('department')
+        .not('department', 'is', null);
+
+    if (error) throw new Error(error.message);
+
+    const uniqueDepts = Array.from(new Set(data.map(d => d.department))).sort();
+    return uniqueDepts;
+}
+
+export async function createPosition(formData: FormData) {
+    const supabase = await createClient();
+
+    const data = {
+        item_number: formData.get('itemNumber') as string,
+        position_title: formData.get('positionTitle') as string,
+        classification: formData.get('classification') as string,
+        department: formData.get('department') as string,
+        level: formData.get('level') as string,
+        salary_grade: formData.get('salaryGrade') ? parseInt(formData.get('salaryGrade') as string) : null,
+        annual_salary_authorized: formData.get('salaryAuthorized') ? parseFloat(formData.get('salaryAuthorized') as string) : null,
+        area_code: formData.get('areaCode') as string,
+        area_type: formData.get('areaType') as string,
+        is_active: true
+    };
+
+    const { error } = await supabase.from('positions').insert([data]);
+
+    if (error) {
+        throw new Error(error.message);
+    }
+
+    revalidatePath('/dashboard/employees');
+    revalidatePath('/dashboard/reports'); // Also revalidate reports since they use this data
+}

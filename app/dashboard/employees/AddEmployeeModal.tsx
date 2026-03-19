@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Upload, User, Briefcase, Info, ShieldAlert, GraduationCap, Banknote, MapPin, CheckCircle } from 'lucide-react';
-import { createEmployee } from './actions';
-import { createClient } from '@/utils/supabase/client';
+import { createEmployee, getVacantPositions, getUniqueDepartments } from './actions';
 
 interface Position {
     item_number: string;
@@ -43,7 +42,7 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
         classification: 'Teaching',
         department: '',
         status: 'Permanent',
-        level: 'Secondary',
+        level: 'Junior High School',
 
         itemNumber: '',
         salaryGrade: '',
@@ -63,38 +62,34 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
 
     const [photo, setPhoto] = useState<File | null>(null);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-    const [positions, setPositions] = useState<Position[]>([]);
-    const [activeItemNumbers, setActiveItemNumbers] = useState<Set<string>>(new Set());
+    const [vacantPositions, setVacantPositions] = useState<Position[]>([]);
+    const [departments, setDepartments] = useState<string[]>([]);
+
+    const [isManualItemNumber, setIsManualItemNumber] = useState(false);
+    const [isManualDept, setIsManualDept] = useState(false);
+    const [isManualStatus, setIsManualStatus] = useState(false);
+    const [isManualClass, setIsManualClass] = useState(false);
 
     useEffect(() => {
-        // Fetch all active positions and currently-held item numbers
-        const fetchPositions = async () => {
-            const supabase = createClient();
-            const [{ data: posData }, { data: empData }] = await Promise.all([
-                supabase.from('positions').select('*').eq('is_active', true).order('position_title'),
-                supabase.from('employees').select('item_number, resigned_date, retirement_date, is_deceased'),
-            ]);
-            if (posData) setPositions(posData);
-            if (empData) {
-                const now = new Date();
-                const held = new Set(
-                    empData
-                        .filter(e => !e.is_deceased &&
-                            !(e.resigned_date && new Date(e.resigned_date) <= now) &&
-                            !(e.retirement_date && new Date(e.retirement_date) <= now))
-                        .map(e => e.item_number)
-                        .filter(Boolean)
-                );
-                setActiveItemNumbers(held);
+        const loadData = async () => {
+            try {
+                const [posData, deptData] = await Promise.all([
+                    getVacantPositions(),
+                    getUniqueDepartments()
+                ]);
+                setVacantPositions(posData);
+                setDepartments(deptData);
+            } catch (err) {
+                console.error('Error loading modal data:', err);
             }
         };
-        fetchPositions();
-    }, []);
+        if (isOpen) loadData();
+    }, [isOpen]);
 
     const handlePositionSelect = (itemNumber: string) => {
-        const pos = positions.find(p => p.item_number === itemNumber);
+        const pos = vacantPositions.find(p => p.item_number === itemNumber);
         if (!pos) {
-            setFormData(prev => ({ ...prev, itemNumber: '' }));
+            setFormData(prev => ({ ...prev, itemNumber: '', positionTitle: '', salaryGrade: '', salaryAuthorized: '' }));
             return;
         }
         setFormData(prev => ({
@@ -103,7 +98,6 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
             positionTitle: pos.position_title,
             classification: pos.classification,
             department: pos.department || prev.department,
-            level: pos.level || prev.level,
             salaryGrade: pos.salary_grade?.toString() || prev.salaryGrade,
             salaryAuthorized: pos.annual_salary_authorized?.toString() || prev.salaryAuthorized,
             areaCode: pos.area_code || prev.areaCode,
@@ -170,30 +164,149 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
                 </div>
 
                 {/* Scrollable Form Body */}
-                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-12 custom-scrollbar">
+                <form onSubmit={handleSubmit} id="add-employee-form" className="flex-1 overflow-y-auto p-8 space-y-12 custom-scrollbar">
 
-                    {/* Section 1: Identity & Photo */}
+                    {/* Section 1: Plantilla & Salary (Items 1-5) */}
+                    <div className="space-y-8">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <Banknote size={14} className="text-blue-600" />
+                            Step 1: Plantilla & Salary
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <div className="md:col-span-2 space-y-1.5">
+                                <label className="text-xs font-bold text-emerald-700 ml-1 flex items-center gap-1.5">
+                                    <CheckCircle size={12} />
+                                    (1) ITEM NUMBER
+                                </label>
+                                {isManualItemNumber ? (
+                                    <div className="flex gap-2">
+                                        <input
+                                            name="itemNumber"
+                                            value={formData.itemNumber}
+                                            onChange={handleInputChange}
+                                            placeholder="Enter Item Number"
+                                            className="w-full bg-emerald-50/40 border border-emerald-100 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-emerald-600/10 outline-none"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsManualItemNumber(false);
+                                                setFormData(prev => ({ ...prev, itemNumber: '', positionTitle: '', salaryGrade: '' }));
+                                            }}
+                                            className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                            title="Use Dropdown"
+                                        >
+                                            <Briefcase size={18} />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <select
+                                        value={formData.itemNumber}
+                                        onChange={(e) => {
+                                            if (e.target.value === 'ADD_NEW') {
+                                                setIsManualItemNumber(true);
+                                                setFormData(prev => ({ ...prev, itemNumber: '', positionTitle: '', salaryGrade: '' }));
+                                            } else {
+                                                handlePositionSelect(e.target.value);
+                                            }
+                                        }}
+                                        className="w-full bg-emerald-50/40 border border-emerald-100 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-emerald-600/10 transition-all outline-none"
+                                    >
+                                        <option value="">— Select Vacant Position —</option>
+                                        {vacantPositions.map(pos => (
+                                            <option key={pos.item_number} value={pos.item_number}>
+                                                {pos.item_number} ({pos.position_title})
+                                            </option>
+                                        ))}
+                                        <option value="ADD_NEW" className="font-bold text-blue-600 italic">➕ Add New Item Number...</option>
+                                    </select>
+                                )}
+                            </div>
+                            <div className="md:col-span-2 space-y-1.5">
+                                <label className="text-xs font-bold text-slate-600 ml-1">(2) POSITION TITLE & SG</label>
+                                <div className="flex gap-2">
+                                    <input name="positionTitle" value={formData.positionTitle} readOnly={!isManualItemNumber} onChange={handleInputChange} type="text" placeholder="Title" className={`flex-1 border border-slate-200 rounded-xl py-2.5 px-4 text-sm font-medium outline-none transition-all ${isManualItemNumber ? 'bg-white focus:ring-4 focus:ring-blue-600/5' : 'bg-slate-100 text-slate-500 cursor-not-allowed'}`} />
+                                    <input name="salaryGrade" value={formData.salaryGrade} readOnly={!isManualItemNumber} onChange={handleInputChange} type="text" placeholder="SG" className={`w-20 border border-slate-200 rounded-xl py-2.5 px-4 text-sm font-bold text-center outline-none transition-all ${isManualItemNumber ? 'bg-white focus:ring-4 focus:ring-blue-600/5' : 'bg-slate-100 text-slate-500 cursor-not-allowed'}`} />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-slate-600 ml-1">(3) ANNUAL SALARY — AUTHORIZED</label>
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold">₱</span>
+                                    <input name="salaryAuthorized" value={formData.salaryAuthorized} onChange={handleInputChange} type="number" step="0.01" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-8 pr-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-slate-600 ml-1">(4) ANNUAL SALARY — ACTUAL</label>
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold">₱</span>
+                                    <input name="salaryActual" value={formData.salaryActual} onChange={handleInputChange} type="number" step="0.01" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-8 pr-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-slate-600 ml-1">(5) STEP</label>
+                                <input name="step" value={formData.step} onChange={handleInputChange} type="number" min="1" max="8" placeholder="1" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr className="border-slate-100" />
+
+                    {/* Section 2: Area & Level (Items 6-9) */}
+                    <div className="space-y-8">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <MapPin size={14} className="text-blue-600" />
+                            Step 2: Assignment Details
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-slate-600 ml-1">(6) AREA CODE</label>
+                                <input name="areaCode" value={formData.areaCode} onChange={handleInputChange} type="text" placeholder="Code" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-slate-600 ml-1">(7) AREA TYPE</label>
+                                <input name="areaType" value={formData.areaType} onChange={handleInputChange} type="text" placeholder="Type" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-slate-600 ml-1">(8) LEVEL</label>
+                                <select
+                                    name="level"
+                                    value={formData.level}
+                                    onChange={handleInputChange}
+                                    required
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none"
+                                >
+                                    <option value="Junior High School">Junior High School</option>
+                                    <option value="Senior High School">Senior High School</option>
+                                </select>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-slate-600 ml-1">(9) P/P/A ATTRIBUTION</label>
+                                <input name="ppaAttribution" value={formData.ppaAttribution} onChange={handleInputChange} type="text" placeholder="Program Attribution" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr className="border-slate-100" />
+
+                    {/* Section 3: Personnel Identity (Items 10-13) */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
                         <div className="md:col-span-1 space-y-4">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                                <User size={14} className="text-blue-600" />
+                                <Upload size={14} className="text-blue-600" />
                                 Photo Upload
                             </p>
-                            <div className="aspect-square w-full bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 relative overflow-hidden group hover:border-blue-400 hover:bg-blue-50/30 transition-all cursor-pointer">
+                            <div className="aspect-square w-full bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 relative overflow-hidden group hover:border-blue-400 transition-all cursor-pointer">
                                 {photo ? (
                                     <div className="absolute inset-0">
                                         <img src={photoPreview || ''} alt="Preview" className="w-full h-full object-cover" />
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                            <p className="text-white text-xs font-bold">Change</p>
-                                        </div>
                                     </div>
                                 ) : (
-                                    <>
-                                        <div className="p-3 bg-white rounded-2xl shadow-sm text-slate-400 group-hover:text-blue-600 transition-all">
-                                            <Upload size={24} />
-                                        </div>
-                                        <p className="text-[10px] font-bold text-slate-400 text-center px-4">JPG/PNG MAX 5MB</p>
-                                    </>
+                                    <div className="p-3 bg-white rounded-2xl shadow-sm text-slate-400 group-hover:text-blue-600 transition-all">
+                                        <Upload size={24} />
+                                    </div>
                                 )}
                                 <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => {
                                     const file = e.target.files?.[0] || null;
@@ -205,39 +318,33 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
 
                         <div className="md:col-span-3 space-y-8">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                                <Info size={14} className="text-blue-600" />
-                                Basic Identity
+                                <User size={14} className="text-blue-600" />
+                                Step 3: Personnel Identity
                             </p>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-slate-600 ml-1">First Name</label>
-                                    <input name="firstName" value={formData.firstName} onChange={handleInputChange} required type="text" placeholder="Juan" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 focus:bg-white transition-all outline-none" />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-slate-600 ml-1">Middle Name</label>
-                                    <input name="middleName" value={formData.middleName} onChange={handleInputChange} type="text" placeholder="Santos" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 focus:bg-white transition-all outline-none" />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-slate-600 ml-1">Last Name</label>
-                                    <input name="lastName" value={formData.lastName} onChange={handleInputChange} required type="text" placeholder="De la Cruz" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 focus:bg-white transition-all outline-none" />
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-slate-600 ml-1">(10) NAME OF INCUMBENT</label>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <input name="firstName" value={formData.firstName} onChange={handleInputChange} required type="text" placeholder="First Name" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                    <input name="middleName" value={formData.middleName} onChange={handleInputChange} type="text" placeholder="Middle Name" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                    <input name="lastName" value={formData.lastName} onChange={handleInputChange} required type="text" placeholder="Last Name" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
                                 </div>
                             </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-slate-600 ml-1">Birthdate</label>
-                                    <input name="birthdate" value={formData.birthdate} onChange={handleInputChange} required type="date" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 focus:bg-white transition-all outline-none" />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-slate-600 ml-1">Sex</label>
+                                    <label className="text-xs font-bold text-slate-600 ml-1">(11) SEX</label>
                                     <select name="gender" value={formData.gender} onChange={handleInputChange} required className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none">
                                         <option value="">Select Sex</option>
                                         <option value="Male">Male</option>
                                         <option value="Female">Female</option>
                                     </select>
                                 </div>
-                                <div className="space-y-1.5 sm:col-span-2">
-                                    <label className="text-xs font-bold text-slate-600 ml-1 text-blue-800">System Record ID</label>
-                                    <input name="employeeId" value={formData.employeeId} onChange={handleInputChange} required type="text" placeholder="2024-XXXX" className="w-full bg-blue-50/50 border border-blue-100 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/10 focus:bg-white transition-all outline-none font-bold" />
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-slate-600 ml-1">(12) DATE OF BIRTH</label>
+                                    <input name="birthdate" value={formData.birthdate} onChange={handleInputChange} required type="date" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-slate-600 ml-1">(13) TIN</label>
+                                    <input name="tin" value={formData.tin} onChange={handleInputChange} type="text" placeholder="000-000-000" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none font-mono" />
                                 </div>
                             </div>
                         </div>
@@ -245,200 +352,95 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
 
                     <hr className="border-slate-100" />
 
-                    {/* Section 2: Position & Assignment */}
+                    {/* Section 4: Service Records (Items 14-17) */}
                     <div className="space-y-8">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                            <Briefcase size={14} className="text-blue-600" />
-                            Assignment & Position details
+                            <GraduationCap size={14} className="text-blue-600" />
+                            Step 4: Government Service Records
                         </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-600 ml-1">Position Title</label>
-                                <input name="positionTitle" value={formData.positionTitle} onChange={handleInputChange} required type="text" placeholder="e.g. Teacher III" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 focus:bg-white transition-all outline-none" />
+                                <label className="text-xs font-bold text-slate-600 ml-1">(14) DATE OF ORIGINAL APPOINTMENT</label>
+                                <input name="appointmentDate" value={formData.appointmentDate} onChange={handleInputChange} type="date" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-600 ml-1">Classification</label>
-                                <select name="classification" value={formData.classification} onChange={handleInputChange} required className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none">
-                                    <option value="Teaching">Teaching</option>
-                                    <option value="Non-Teaching">Non-Teaching</option>
-                                </select>
+                                <label className="text-xs font-bold text-slate-600 ml-1">(15) DATE OF LAST PROMOTION</label>
+                                <input name="promotionDate" value={formData.promotionDate} onChange={handleInputChange} type="date" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-600 ml-1">Department</label>
-                                <select name="department" value={formData.department} onChange={handleInputChange} required className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none">
-                                    <option value="">Select Department</option>
-                                    <option value="Mathematics">Mathematics</option>
-                                    <option value="Science">Science</option>
-                                    <option value="English">English</option>
-                                    <option value="Filipino">Filipino</option>
-                                    <option value="MAPEH">MAPEH</option>
-                                    <option value="AP">AP</option>
-                                    <option value="TLE">TLE</option>
-                                    <option value="ESP">ESP</option>
-                                    <option value="Administration">Administration</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-600 ml-1">Status of Appointment</label>
-                                <select name="status" value={formData.status} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none">
-                                    <option value="Permanent">Permanent</option>
-                                    <option value="Provisional">Provisional</option>
-                                    <option value="Substitute">Substitute</option>
-                                    <option value="Casual">Casual</option>
-                                    <option value="Contractual">Contractual</option>
-                                </select>
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-600 ml-1">Level</label>
-                                <select name="level" value={formData.level} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none">
-                                    <option value="Secondary">Secondary</option>
-                                    <option value="Elementary">Elementary</option>
-                                    <option value="Senior High">Senior High</option>
-                                </select>
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-600 ml-1">Civil Service Eligibility</label>
-                                <input name="eligibility" value={formData.eligibility} onChange={handleInputChange} type="text" placeholder="e.g. RA 1080 (LET)" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-600 ml-1">License Expiration</label>
-                                <input name="licenseExpirationDate" value={formData.licenseExpirationDate} onChange={handleInputChange} type="date" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <hr className="border-slate-100" />
-
-                    {/* Section 3: Salary & Itemization */}
-                    <div className="space-y-8">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                            <Banknote size={14} className="text-blue-600" />
-                            Salary & Itemization (Plantilla)
-                        </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
-                            <div className="space-y-1.5 sm:col-span-2">
-                                <label className="text-xs font-bold text-emerald-700 ml-1 flex items-center gap-1.5">
-                                    <CheckCircle size={12} />
-                                    Assign Plantilla Position
-                                </label>
-                                <select
-                                    value={formData.itemNumber}
-                                    onChange={(e) => handlePositionSelect(e.target.value)}
-                                    className="w-full bg-emerald-50/40 border border-emerald-100 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-emerald-600/10 transition-all outline-none"
-                                >
-                                    <option value="">— Select a position —</option>
-                                    {positions.map(pos => {
-                                        const isVacant = !activeItemNumbers.has(pos.item_number);
-                                        return (
-                                            <option key={pos.item_number} value={pos.item_number}>
-                                                {pos.position_title} · SG{pos.salary_grade} {isVacant ? '✦ VACANT' : '(Filled)'}
-                                            </option>
-                                        );
-                                    })}
-                                </select>
-                                {formData.itemNumber && (
-                                    <p className="text-[10px] font-mono text-emerald-700 mt-1 truncate" title={formData.itemNumber}>
-                                        {formData.itemNumber}
-                                    </p>
+                                <label className="text-xs font-bold text-slate-600 ml-1">(16) STATUS</label>
+                                {isManualStatus ? (
+                                    <div className="flex gap-2">
+                                        <input name="status" value={formData.status} onChange={handleInputChange} placeholder="Enter Status" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                        <button type="button" onClick={() => setIsManualStatus(false)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"><X size={18} /></button>
+                                    </div>
+                                ) : (
+                                    <select name="status" value={formData.status} onChange={(e) => e.target.value === 'ADD_NEW' ? setIsManualStatus(true) : handleInputChange(e)} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none">
+                                        <option value="Permanent">Permanent</option>
+                                        <option value="Provisional">Provisional</option>
+                                        <option value="Substitute">Substitute</option>
+                                        <option value="Casual">Casual</option>
+                                        <option value="Contractual">Contractual</option>
+                                        <option value="ADD_NEW" className="font-bold text-blue-600 italic">➕ Add New Status...</option>
+                                    </select>
                                 )}
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-600 ml-1">Salary Grade</label>
-                                <input name="salaryGrade" value={formData.salaryGrade} onChange={handleInputChange} type="number" placeholder="11" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-600 ml-1">Step</label>
-                                <select name="step" value={formData.step} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none">
-                                    {[1, 2, 3, 4, 5, 6, 7, 8].map(s => <option key={s} value={s}>{s}</option>)}
-                                </select>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-600 ml-1">Annual Salary (Authorized)</label>
-                                <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold">₱</span>
-                                    <input name="salaryAuthorized" value={formData.salaryAuthorized} onChange={handleInputChange} type="number" step="0.01" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-8 pr-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
-                                </div>
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-600 ml-1">Annual Salary (Actual)</label>
-                                <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold">₱</span>
-                                    <input name="salaryActual" value={formData.salaryActual} onChange={handleInputChange} type="number" step="0.01" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-8 pr-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
-                                </div>
+                                <label className="text-xs font-bold text-slate-600 ml-1">(17) CIVIL SERVICE ELIGIBILITY</label>
+                                <input name="eligibility" value={formData.eligibility} onChange={handleInputChange} type="text" placeholder="e.g. RA 1080" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
                             </div>
                         </div>
                     </div>
 
                     <hr className="border-slate-100" />
 
-                    {/* Section 4: Area & Service Tracking */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                        <div className="space-y-8">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                                <MapPin size={14} className="text-blue-600" />
-                                Area & Attribution
-                            </p>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-slate-600 ml-1">Area Code</label>
-                                    <input name="areaCode" value={formData.areaCode} onChange={handleInputChange} type="text" placeholder="Code" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-slate-600 ml-1">Area Type</label>
-                                    <input name="areaType" value={formData.areaType} onChange={handleInputChange} type="text" placeholder="Type" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
-                                </div>
+                    {/* Section 5: Secondary System Data (Mandatory non-sequential fields) */}
+                    <div className="space-y-8">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                            <ShieldAlert size={14} className="text-blue-600" />
+                            Step 5: System & Tracking Details
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-slate-600 ml-1">SYSTEM RECORD ID</label>
+                                <input name="employeeId" value={formData.employeeId} onChange={handleInputChange} required type="text" placeholder="2024-XXXX" className="w-full bg-blue-50/50 border border-blue-100 rounded-xl py-2.5 px-4 text-sm font-bold focus:ring-4 focus:ring-blue-600/10 outline-none" />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-600 ml-1">P/P/A Attribution</label>
-                                <input name="ppaAttribution" value={formData.ppaAttribution} onChange={handleInputChange} type="text" placeholder="Program/Project/Activity" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                <label className="text-xs font-bold text-slate-600 ml-1">CLASSIFICATION</label>
+                                {isManualClass ? (
+                                    <div className="flex gap-2">
+                                        <input name="classification" value={formData.classification} onChange={handleInputChange} placeholder="Enter Class" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                        <button type="button" onClick={() => setIsManualClass(false)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"><X size={18} /></button>
+                                    </div>
+                                ) : (
+                                    <select name="classification" value={formData.classification} onChange={(e) => e.target.value === 'ADD_NEW' ? setIsManualClass(true) : handleInputChange(e)} required className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 outline-none">
+                                        <option value="Teaching">Teaching</option>
+                                        <option value="Non-Teaching">Non-Teaching</option>
+                                        <option value="ADD_NEW" className="font-bold text-blue-600 italic">➕ Add New Class...</option>
+                                    </select>
+                                )}
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-600 ml-1">TIN Number</label>
-                                <input name="tin" value={formData.tin} onChange={handleInputChange} type="text" placeholder="000-000-000" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none font-mono" />
+                                <label className="text-xs font-bold text-slate-600 ml-1">DEPARTMENT</label>
+                                {isManualDept ? (
+                                    <div className="flex gap-2">
+                                        <input name="department" value={formData.department} onChange={handleInputChange} placeholder="Enter Dept" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                        <button type="button" onClick={() => setIsManualDept(false)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"><X size={18} /></button>
+                                    </div>
+                                ) : (
+                                    <select name="department" value={formData.department} onChange={(e) => e.target.value === 'ADD_NEW' ? setIsManualClass(true) : handleInputChange(e)} required className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 outline-none">
+                                        <option value="">Select Department</option>
+                                        {departments.map(dept => <option key={dept} value={dept}>{dept}</option>)}
+                                        <option value="ADD_NEW" className="font-bold text-blue-600 italic">➕ Add New Dept...</option>
+                                    </select>
+                                )}
                             </div>
-                        </div>
-
-                        <div className="space-y-8">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                                <GraduationCap size={14} className="text-blue-600" />
-                                Service Chronology
-                            </p>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-slate-600 ml-1">Original Appointment</label>
-                                    <input name="appointmentDate" value={formData.appointmentDate} onChange={handleInputChange} type="date" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-slate-600 ml-1">Last Promotion</label>
-                                    <input name="promotionDate" value={formData.promotionDate} onChange={handleInputChange} type="date" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
-                                </div>
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-slate-600 ml-1">LICENSE EXPIRATION</label>
+                                <input name="licenseExpirationDate" value={formData.licenseExpirationDate} onChange={handleInputChange} type="date" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 outline-none" />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-slate-600 ml-1">Retirement Date</label>
-                                    <input name="retirementDate" value={formData.retirementDate} onChange={handleInputChange} type="date" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-red-700 ml-1">Resignation Date</label>
-                                    <input name="resignedDate" value={formData.resignedDate} onChange={handleInputChange} type="date" className="w-full bg-red-50/30 border border-red-100 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-red-600/10 transition-all outline-none" />
-                                </div>
-                            </div>
-                            <label className="flex items-center gap-3 cursor-pointer group p-3 bg-red-50/50 rounded-xl border border-red-100/50">
-                                <input
-                                    type="checkbox"
-                                    checked={formData.isDeceased === 'true'}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, isDeceased: e.target.checked ? 'true' : 'false' }))}
-                                    className="w-5 h-5 rounded-lg text-red-600 focus:ring-red-500 border-slate-300"
-                                />
-                                <span className="text-sm font-bold text-red-900">Mark Personnel as Deceased</span>
-                            </label>
                         </div>
                     </div>
-
                 </form>
 
                 {/* Footer Actions */}

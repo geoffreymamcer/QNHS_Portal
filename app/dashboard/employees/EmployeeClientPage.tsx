@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Search, MoreHorizontal, Eye, Edit2, Trash2, Filter, Download } from 'lucide-react';
 import AddEmployeeModal from './AddEmployeeModal';
+import AddPositionModal from './AddPositionModal';
 import ViewEmployeeModal from './ViewEmployeeModal';
 import EditEmployeeModal from './EditEmployeeModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
@@ -27,6 +28,7 @@ interface Employee {
 export default function EmployeeClientPage({ initialEmployees }: { initialEmployees: any[] }) {
     // Modal States
     const [isAddOpen, setIsAddOpen] = useState(false);
+    const [isAddItemOpen, setIsAddItemOpen] = useState(false);
     const [isViewOpen, setIsViewOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -38,10 +40,15 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
     const [selectedPos, setSelectedPos] = useState('All');
     const [selectedClass, setSelectedClass] = useState('All');
     const [selectedStatusFilter, setSelectedStatusFilter] = useState<'All' | 'license_expiring' | 'retiring' | 'newly_hired'>('All');
+    const [selectedSG, setSelectedSG] = useState('All');
 
     const departments = useMemo(() => Array.from(new Set(initialEmployees.map(e => e.department).filter(Boolean))).sort(), [initialEmployees]);
     const positions = useMemo(() => Array.from(new Set(initialEmployees.map(e => e.position_title).filter(Boolean))).sort(), [initialEmployees]);
     const classifications = useMemo(() => Array.from(new Set(initialEmployees.map(e => e.classification).filter(Boolean))).sort(), [initialEmployees]);
+    const salaryGrades = useMemo(() => {
+        return Array.from(new Set(initialEmployees.map(e => e.salary_grade).filter(sg => sg !== null && sg !== undefined)))
+            .sort((a, b) => Number(b) - Number(a)); // Sort SG descending for filter list too
+    }, [initialEmployees]);
 
     // --- Status helper functions ---
     const CURRENT_YEAR = new Date().getFullYear();
@@ -96,6 +103,7 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
             const matchesDept = selectedDept === 'All' || emp.department === selectedDept;
             const matchesPos = selectedPos === 'All' || emp.position_title === selectedPos;
             const matchesClass = selectedClass === 'All' || emp.classification === selectedClass;
+            const matchesSG = selectedSG === 'All' || emp.salary_grade?.toString() === selectedSG;
 
             const matchesStatus =
                 selectedStatusFilter === 'All' ||
@@ -103,9 +111,16 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
                 (selectedStatusFilter === 'retiring' && emp._retiring) ||
                 (selectedStatusFilter === 'newly_hired' && emp._newlyHired);
 
-            return matchesSearch && matchesDept && matchesPos && matchesClass && matchesStatus;
+            return matchesSearch && matchesDept && matchesPos && matchesClass && matchesStatus && matchesSG;
+        }).sort((a, b) => {
+            // Sort by Salary Grade descending (highest to lowest)
+            const sgA = Number(a.salary_grade) || 0;
+            const sgB = Number(b.salary_grade) || 0;
+            if (sgB !== sgA) return sgB - sgA;
+            // Secondary sort by last name alphabetically
+            return (a.last_name || '').localeCompare(b.last_name || '');
         });
-    }, [employeesWithStatus, searchQuery, selectedDept, selectedPos, selectedClass, selectedStatusFilter]);
+    }, [employeesWithStatus, searchQuery, selectedDept, selectedPos, selectedClass, selectedStatusFilter, selectedSG]);
 
     const calculateAge = (birthdate: string) => {
         if (!birthdate) return 0;
@@ -126,6 +141,7 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
         setSelectedDept('All');
         setSelectedPos('All');
         setSelectedClass('All');
+        setSelectedSG('All');
         setSelectedStatusFilter('All');
     };
 
@@ -157,13 +173,22 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
                     <h1 className="text-2xl font-bold tracking-tight text-blue-950">Employee Management</h1>
                     <p className="text-slate-500 mt-1">Manage, search, and monitor your school workforce.</p>
                 </div>
-                <button
-                    onClick={() => setIsAddOpen(true)}
-                    className="flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2.5 rounded-xl font-semibold shadow-md transition-all active:scale-95"
-                >
-                    <Plus size={18} />
-                    Add New Employee
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setIsAddItemOpen(true)}
+                        className="flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2.5 rounded-xl font-semibold border border-slate-200 transition-all active:scale-95"
+                    >
+                        <Plus size={18} />
+                        Add New Item
+                    </button>
+                    <button
+                        onClick={() => setIsAddOpen(true)}
+                        className="flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white px-4 py-2.5 rounded-xl font-semibold shadow-md transition-all active:scale-95"
+                    >
+                        <Plus size={18} />
+                        Add New Employee
+                    </button>
+                </div>
             </div>
 
             {/* Advanced Search and Filters */}
@@ -218,6 +243,17 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
                         >
                             <option value="All">All Classifications</option>
                             {classifications.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Salary Grade</label>
+                        <select
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/20 transition-all appearance-none"
+                            value={selectedSG}
+                            onChange={(e) => setSelectedSG(e.target.value)}
+                        >
+                            <option value="All">All Salary Grades</option>
+                            {salaryGrades.map(sg => <option key={sg} value={sg.toString()}>Grade {sg}</option>)}
                         </select>
                     </div>
                 </div>
@@ -311,17 +347,17 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
                                                         <div className="flex flex-wrap gap-1 mt-1">
                                                             {emp._licenseExpiring && (
                                                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-amber-100 text-amber-700 border border-amber-200">
-                                                                    📋 License Expiring
+                                                                    License Expiring
                                                                 </span>
                                                             )}
                                                             {emp._retiring && (
                                                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-rose-100 text-rose-700 border border-rose-200">
-                                                                    🎂 Retiring
+                                                                    Retiring
                                                                 </span>
                                                             )}
                                                             {emp._newlyHired && (
                                                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200">
-                                                                    🆕 Newly Hired
+                                                                    Newly Hired
                                                                 </span>
                                                             )}
                                                         </div>
@@ -402,6 +438,7 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
 
             {/* Modals */}
             <AddEmployeeModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
+            <AddPositionModal isOpen={isAddItemOpen} onClose={() => setIsAddItemOpen(false)} />
 
             <ViewEmployeeModal
                 isOpen={isViewOpen}

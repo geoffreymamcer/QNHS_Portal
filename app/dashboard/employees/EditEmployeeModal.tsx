@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Upload, User, Briefcase, Info, Save, ShieldAlert, GraduationCap, Banknote, MapPin, CheckCircle } from 'lucide-react';
-import { updateEmployee } from './actions';
-import { createClient } from '@/utils/supabase/client';
+import { updateEmployee, getVacantPositions, getUniqueDepartments } from './actions';
 
 interface Position {
     item_number: string;
@@ -44,7 +43,7 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
         classification: 'Teaching',
         department: '',
         status: 'Permanent',
-        level: 'Secondary',
+        level: 'Junior High School',
 
         itemNumber: '',
         salaryGrade: '',
@@ -64,87 +63,89 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
 
     const [photo, setPhoto] = useState<File | null>(null);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-    const [positions, setPositions] = useState<Position[]>([]);
-    const [activeItemNumbers, setActiveItemNumbers] = useState<Set<string>>(new Set());
+    const [vacantPositions, setVacantPositions] = useState<Position[]>([]);
+    const [departments, setDepartments] = useState<string[]>([]);
+
+    const [isManualItemNumber, setIsManualItemNumber] = useState(false);
+    const [isManualDept, setIsManualDept] = useState(false);
+    const [isManualStatus, setIsManualStatus] = useState(false);
+    const [isManualClass, setIsManualClass] = useState(false);
 
     useEffect(() => {
-        if (employee) {
-            setFormData({
-                employeeId: employee.employee_id || '',
-                firstName: employee.first_name || '',
-                middleName: employee.mid_name || '',
-                lastName: employee.last_name || '',
-                gender: employee.sex || '',
-                birthdate: employee.birthdate || '',
-                tin: employee.tin || '',
-                eligibility: employee.civil_service_eligibility || '',
-                licenseExpirationDate: employee.license_expiration_date || '',
-                isDeceased: employee.is_deceased ? 'true' : 'false',
-
-                positionTitle: employee.position_title || '',
-                classification: employee.classification || 'Teaching',
-                department: employee.department || '',
-                status: employee.status || 'Permanent',
-                level: employee.level || 'Secondary',
-
-                itemNumber: employee.item_number || '',
-                salaryGrade: employee.salary_grade?.toString() || '',
-                step: employee.step?.toString() || '1',
-                salaryAuthorized: employee.annual_salary_authorized?.toString() || '',
-                salaryActual: employee.annual_salary_actual?.toString() || '',
-
-                areaCode: employee.area_code || '',
-                areaType: employee.area_type || '',
-                ppaAttribution: employee.ppa_attribution || '',
-
-                appointmentDate: employee.original_appointment_date || '',
-                promotionDate: employee.last_promotion_date || '',
-                retirementDate: employee.retirement_date || '',
-                resignedDate: employee.resigned_date || '',
-            });
-            setPhotoPreview(employee.photo_url || null);
-        }
-    }, [employee]);
-
-    // Fetch all positions and compute which are currently held
-    useEffect(() => {
-        const fetchPositions = async () => {
-            const supabase = createClient();
-            const [{ data: posData }, { data: empData }] = await Promise.all([
-                supabase.from('positions').select('*').eq('is_active', true).order('position_title'),
-                supabase.from('employees').select('item_number, resigned_date, retirement_date, is_deceased'),
-            ]);
-            if (posData) setPositions(posData);
-            if (empData) {
-                const now = new Date();
-                // Exclude the current employee's item_number so their own slot shows as available
-                const held = new Set(
-                    empData
-                        .filter(e => !e.is_deceased &&
-                            !(e.resigned_date && new Date(e.resigned_date) <= now) &&
-                            !(e.retirement_date && new Date(e.retirement_date) <= now))
-                        .map(e => e.item_number)
-                        .filter(Boolean)
-                );
-                setActiveItemNumbers(held);
+        const loadData = async () => {
+            try {
+                const [posData, deptData] = await Promise.all([
+                    getVacantPositions(),
+                    getUniqueDepartments()
+                ]);
+                setVacantPositions(posData);
+                setDepartments(deptData);
+            } catch (err) {
+                console.error('Error loading modal data:', err);
             }
         };
-        fetchPositions();
-    }, []);
+        if (isOpen) loadData();
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (!employee || !isOpen) return;
+
+        setFormData({
+            employeeId: employee.employee_id || '',
+            firstName: employee.first_name || '',
+            middleName: employee.mid_name || '',
+            lastName: employee.last_name || '',
+            gender: employee.sex || '',
+            birthdate: employee.birthdate || '',
+            tin: employee.tin || '',
+            eligibility: employee.civil_service_eligibility || '',
+            licenseExpirationDate: employee.license_expiration_date || '',
+            isDeceased: employee.is_deceased ? 'true' : 'false',
+
+            positionTitle: employee.position_title || '',
+            classification: employee.classification || 'Teaching',
+            department: employee.department || '',
+            status: employee.status || 'Permanent',
+            level: employee.level || 'Junior High School',
+
+            itemNumber: employee.item_number || '',
+            salaryGrade: employee.salary_grade?.toString() || '',
+            step: employee.step?.toString() || '1',
+            salaryAuthorized: employee.annual_salary_authorized?.toString() || '',
+            salaryActual: employee.annual_salary_actual?.toString() || '',
+
+            areaCode: employee.area_code || '',
+            areaType: employee.area_type || '',
+            ppaAttribution: employee.ppa_attribution || '',
+
+            appointmentDate: employee.original_appointment_date || '',
+            promotionDate: employee.last_promotion_date || '',
+            retirementDate: employee.retirement_date || '',
+            resignedDate: employee.resigned_date || '',
+        });
+
+        setPhotoPreview(employee.photo_url || null);
+
+    }, [employee, isOpen]);
 
     const handlePositionSelect = (itemNumber: string) => {
-        const pos = positions.find(p => p.item_number === itemNumber);
+        // In Edit mode, the employee's current item number might not be in the "vacant" list
+        // but we should still allow selecting it if it's the one currently saved.
+        const pos = vacantPositions.find(p => p.item_number === itemNumber);
+
         if (!pos) {
-            setFormData(prev => ({ ...prev, itemNumber: '' }));
+            // Handle if it's the current employee's original position that isn't in the newly fetched vacant list
+            if (itemNumber === employee.item_number) return;
+            setFormData(prev => ({ ...prev, itemNumber: '', positionTitle: '', salaryGrade: '', salaryAuthorized: '' }));
             return;
         }
+
         setFormData(prev => ({
             ...prev,
             itemNumber: pos.item_number,
             positionTitle: pos.position_title,
             classification: pos.classification,
             department: pos.department || prev.department,
-            level: pos.level || prev.level,
             salaryGrade: pos.salary_grade?.toString() || prev.salaryGrade,
             salaryAuthorized: pos.annual_salary_authorized?.toString() || prev.salaryAuthorized,
             areaCode: pos.area_code || prev.areaCode,
@@ -301,43 +302,67 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-600 ml-1">Classification</label>
-                                <select name="classification" value={formData.classification} onChange={handleInputChange} required className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none">
-                                    <option value="Teaching">Teaching</option>
-                                    <option value="Non-Teaching">Non-Teaching</option>
-                                </select>
+                                {isManualClass ? (
+                                    <div className="flex gap-2">
+                                        <input name="classification" value={formData.classification} onChange={handleInputChange} placeholder="Enter Class" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                        <button type="button" onClick={() => setIsManualClass(false)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"><X size={18} /></button>
+                                    </div>
+                                ) : (
+                                    <select name="classification" value={formData.classification} onChange={(e) => e.target.value === 'ADD_NEW' ? setIsManualClass(true) : handleInputChange(e)} required className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none">
+                                        <option value="Teaching">Teaching</option>
+                                        <option value="Non-Teaching">Non-Teaching</option>
+                                        <option value="ADD_NEW" className="font-bold text-blue-600 italic">➕ Add New Class...</option>
+                                    </select>
+                                )}
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-600 ml-1">Department</label>
-                                <select name="department" value={formData.department} onChange={handleInputChange} required className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none">
-                                    <option value="Mathematics">Mathematics</option>
-                                    <option value="Science">Science</option>
-                                    <option value="English">English</option>
-                                    <option value="Filipino">Filipino</option>
-                                    <option value="MAPEH">MAPEH</option>
-                                    <option value="AP">AP</option>
-                                    <option value="TLE">TLE</option>
-                                    <option value="ESP">ESP</option>
-                                    <option value="Administration">Administration</option>
-                                </select>
+                                {isManualDept ? (
+                                    <div className="flex gap-2">
+                                        <input name="department" value={formData.department} onChange={handleInputChange} placeholder="Enter Dept" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                        <button type="button" onClick={() => setIsManualDept(false)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"><X size={18} /></button>
+                                    </div>
+                                ) : (
+                                    <select name="department" value={formData.department} onChange={(e) => e.target.value === 'ADD_NEW' ? setIsManualClass(true) : handleInputChange(e)} required className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none">
+                                        <option value="">Select Department</option>
+                                        {departments.map(dept => (
+                                            <option key={dept} value={dept}>{dept}</option>
+                                        ))}
+                                        <option value="ADD_NEW" className="font-bold text-blue-600 italic">➕ Add New Dept...</option>
+                                    </select>
+                                )}
                             </div>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-600 ml-1">Status of Appointment</label>
-                                <select name="status" value={formData.status} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none">
-                                    <option value="Permanent">Permanent</option>
-                                    <option value="Provisional">Provisional</option>
-                                    <option value="Substitute">Substitute</option>
-                                    <option value="Casual">Casual</option>
-                                    <option value="Contractual">Contractual</option>
-                                </select>
+                                {isManualStatus ? (
+                                    <div className="flex gap-2">
+                                        <input name="status" value={formData.status} onChange={handleInputChange} placeholder="Enter Status" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                        <button type="button" onClick={() => setIsManualStatus(false)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"><X size={18} /></button>
+                                    </div>
+                                ) : (
+                                    <select name="status" value={formData.status} onChange={(e) => e.target.value === 'ADD_NEW' ? setIsManualStatus(true) : handleInputChange(e)} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none">
+                                        <option value="Permanent">Permanent</option>
+                                        <option value="Provisional">Provisional</option>
+                                        <option value="Substitute">Substitute</option>
+                                        <option value="Casual">Casual</option>
+                                        <option value="Contractual">Contractual</option>
+                                        <option value="ADD_NEW" className="font-bold text-blue-600 italic">➕ Add New Status...</option>
+                                    </select>
+                                )}
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-600 ml-1">Level</label>
-                                <select name="level" value={formData.level} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none">
-                                    <option value="Secondary">Secondary</option>
-                                    <option value="Elementary">Elementary</option>
-                                    <option value="Senior High">Senior High</option>
+                                <label className="text-xs font-bold text-slate-600 ml-1 uppercase tracking-tighter">Level</label>
+                                <select
+                                    name="level"
+                                    value={formData.level}
+                                    onChange={handleInputChange}
+                                    required
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none"
+                                >
+                                    <option value="Junior High School">Junior High School</option>
+                                    <option value="Senior High School">Senior High School</option>
                                 </select>
                             </div>
                             <div className="space-y-1.5">
@@ -365,22 +390,53 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
                                     <CheckCircle size={12} />
                                     Plantilla Position
                                 </label>
-                                <select
-                                    value={formData.itemNumber}
-                                    onChange={(e) => handlePositionSelect(e.target.value)}
-                                    className="w-full bg-emerald-50/40 border border-emerald-100 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-emerald-600/10 transition-all outline-none"
-                                >
-                                    <option value="">— No position assigned —</option>
-                                    {positions.map(pos => {
-                                        const isCurrentlyHeld = activeItemNumbers.has(pos.item_number)
-                                            && pos.item_number !== formData.itemNumber;
-                                        return (
+                                {isManualItemNumber ? (
+                                    <div className="flex gap-2">
+                                        <input
+                                            name="itemNumber"
+                                            value={formData.itemNumber}
+                                            onChange={handleInputChange}
+                                            placeholder="Enter Item Number"
+                                            className="w-full bg-emerald-50/40 border border-emerald-100 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-emerald-600/10 outline-none"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsManualItemNumber(false);
+                                                setFormData(prev => ({ ...prev, itemNumber: employee.item_number || '', positionTitle: employee.position_title || '', salaryGrade: employee.salary_grade?.toString() || '' }));
+                                            }}
+                                            className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                            title="Use Dropdown"
+                                        >
+                                            <Briefcase size={18} />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <select
+                                        value={formData.itemNumber}
+                                        onChange={(e) => {
+                                            if (e.target.value === 'ADD_NEW') {
+                                                setIsManualItemNumber(true);
+                                                // Don't reset everything immediately, maybe the user wants to base it on current
+                                            } else {
+                                                handlePositionSelect(e.target.value);
+                                            }
+                                        }}
+                                        className="w-full bg-emerald-50/40 border border-emerald-100 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-emerald-600/10 transition-all outline-none"
+                                    >
+                                        {/* Include current position if it's not in the vacant list (because it's held by THIS employee) */}
+                                        {employee.item_number && !vacantPositions.find(p => p.item_number === employee.item_number) && (
+                                            <option value={employee.item_number}>{employee.position_title} (Current)</option>
+                                        )}
+                                        <option value="">— Select Vacant Position —</option>
+                                        {vacantPositions.map(pos => (
                                             <option key={pos.item_number} value={pos.item_number}>
-                                                {pos.position_title} · SG{pos.salary_grade} {isCurrentlyHeld ? '(Filled)' : '✦ VACANT'}
+                                                {pos.position_title} · SG{pos.salary_grade} ({pos.item_number})
                                             </option>
-                                        );
-                                    })}
-                                </select>
+                                        ))}
+                                        <option value="ADD_NEW" className="font-bold text-blue-600 italic">➕ Add New Item Number...</option>
+                                    </select>
+                                )}
                                 {formData.itemNumber && (
                                     <p className="text-[10px] font-mono text-emerald-700 mt-1 truncate" title={formData.itemNumber}>
                                         {formData.itemNumber}
@@ -393,9 +449,7 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-600 ml-1">Step</label>
-                                <select name="step" value={formData.step} onChange={handleInputChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none">
-                                    {[1, 2, 3, 4, 5, 6, 7, 8].map(s => <option key={s} value={s}>{s}</option>)}
-                                </select>
+                                <input name="step" value={formData.step} onChange={handleInputChange} type="number" min="1" max="8" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
                             </div>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
