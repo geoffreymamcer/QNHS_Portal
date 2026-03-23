@@ -419,3 +419,58 @@ export async function getEmployeeFullProfile(employeeUuid: string) {
         eligibility: eligibility || []
     };
 }
+
+export async function getPdsDropdownValues() {
+    const supabase = await createClient();
+
+    // 1. Personal PDS fields
+    const { data: pdsData } = await supabase
+        .from('employee_pds')
+        .select('citizenship, blood_type, res_city, res_province, res_zip_code, perm_city, perm_province, perm_zip_code');
+
+    // 2. Education fields
+    const { data: eduData } = await supabase
+        .from('employee_education')
+        .select('level, school_name, degree_course, attendance_from, attendance_to, level_units_earned, honors_received');
+
+    const unique = (arr: (string | null | undefined)[]) => {
+        const seen = new Set<string>();
+        const results: string[] = [];
+        
+        arr.filter(Boolean).forEach(val => {
+            const trimmed = val!.trim();
+            if (!trimmed) return;
+            const lower = trimmed.toLowerCase();
+            if (!seen.has(lower)) {
+                seen.add(lower);
+                results.push(trimmed);
+            }
+        });
+        
+        return results.sort((a, b) => a.localeCompare(b));
+    };
+
+    return {
+        citizenships: unique(pdsData?.map(d => d.citizenship) || []),
+        bloodTypes: unique(pdsData?.map(d => d.blood_type) || []),
+        cities: unique([
+            ...(pdsData?.map(d => d.res_city) || []),
+            ...(pdsData?.map(d => d.perm_city) || [])
+        ]),
+        provinces: unique([
+            ...(pdsData?.map(d => d.res_province) || []),
+            ...(pdsData?.map(d => d.perm_province) || [])
+        ]),
+        zipCodes: unique([
+            ...(pdsData?.map(d => d.res_zip_code) || []),
+            ...(pdsData?.map(d => d.perm_zip_code) || [])
+        ]),
+        eduLevels: unique(eduData?.map(d => d.level) || []),
+        schools: unique(eduData?.map(d => d.school_name) || []),
+        degrees: unique(eduData?.map(d => d.degree_course) || []),
+        yearsFrom: unique(eduData?.map(d => d.attendance_from) || []),
+        yearsTo: unique(eduData?.map(d => d.attendance_to) || []),
+        units: unique(eduData?.map(d => d.level_units_earned) || []),
+        honors: unique(eduData?.map(d => d.honors_received) || []),
+    };
+}
