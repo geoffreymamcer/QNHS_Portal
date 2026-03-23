@@ -436,7 +436,7 @@ export default function AddApplicantModal({ isOpen, onClose }: AddApplicantModal
 }
 
 // Reusable Components
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value'> {
     label: string;
     value: string;
     onChange: (v: string) => void;
@@ -458,7 +458,7 @@ function Input({ label, value, onChange, type = 'text', placeholder = '', ...pro
     );
 }
 
-interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'onChange' | 'value'> {
     label: string;
     options: string[];
     value: string;

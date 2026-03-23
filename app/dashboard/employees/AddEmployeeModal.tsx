@@ -27,7 +27,6 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [formData, setFormData] = useState({
-        employeeId: '',
         firstName: '',
         middleName: '',
         lastName: '',
@@ -271,16 +270,14 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-600 ml-1">(8) LEVEL</label>
-                                <select
+                                <input
+                                    type='text'
                                     name="level"
                                     value={formData.level}
                                     onChange={handleInputChange}
                                     required
                                     className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none"
-                                >
-                                    <option value="Junior High School">Junior High School</option>
-                                    <option value="Senior High School">Senior High School</option>
-                                </select>
+                                />
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-600 ml-1">(9) P/P/A ATTRIBUTION</label>
@@ -401,10 +398,6 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
                             Step 5: System & Tracking Details
                         </p>
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-600 ml-1">SYSTEM RECORD ID</label>
-                                <input name="employeeId" value={formData.employeeId} onChange={handleInputChange} required type="text" placeholder="2024-XXXX" className="w-full bg-blue-50/50 border border-blue-100 rounded-xl py-2.5 px-4 text-sm font-bold focus:ring-4 focus:ring-blue-600/10 outline-none" />
-                            </div>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-600 ml-1">CLASSIFICATION</label>
                                 {isManualClass ? (

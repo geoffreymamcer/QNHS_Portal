@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Search, MoreHorizontal, Eye, Edit2, Trash2, Filter, Download } from 'lucide-react';
 import AddEmployeeModal from './AddEmployeeModal';
+import AddEmployeePdsModal from './AddEmployeePdsModal';
 import AddPositionModal from './AddPositionModal';
 import ViewEmployeeModal from './ViewEmployeeModal';
 import EditEmployeeModal from './EditEmployeeModal';
@@ -28,6 +29,7 @@ interface Employee {
 export default function EmployeeClientPage({ initialEmployees }: { initialEmployees: any[] }) {
     // Modal States
     const [isAddOpen, setIsAddOpen] = useState(false);
+    const [isPdsOpen, setIsPdsOpen] = useState(false);
     const [isAddItemOpen, setIsAddItemOpen] = useState(false);
     const [isViewOpen, setIsViewOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
@@ -180,6 +182,13 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
                     >
                         <Plus size={18} />
                         Add New Item
+                    </button>
+                    <button
+                        onClick={() => setIsPdsOpen(true)}
+                        className="flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-2.5 rounded-xl font-bold border border-blue-200 transition-all active:scale-95"
+                    >
+                        <MoreHorizontal size={18} />
+                        Add Employee Personal Data
                     </button>
                     <button
                         onClick={() => setIsAddOpen(true)}
@@ -438,6 +447,7 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
 
             {/* Modals */}
             <AddEmployeeModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
+            <AddEmployeePdsModal isOpen={isPdsOpen} onClose={() => setIsPdsOpen(false)} />
             <AddPositionModal isOpen={isAddItemOpen} onClose={() => setIsAddItemOpen(false)} />
 
             <ViewEmployeeModal

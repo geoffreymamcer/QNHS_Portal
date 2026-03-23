@@ -29,8 +29,10 @@ export async function createEmployee(formData: FormData) {
         }
     }
 
+    const generatedId = `QNHS-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
     const data = {
-        employee_id: formData.get('employeeId') as string,
+        employee_id: generatedId,
         photo_url: photoUrl,
         first_name: formData.get('firstName') as string,
         mid_name: formData.get('middleName') as string,
@@ -195,13 +197,12 @@ export async function getVacantPositions() {
 export async function getUniqueDepartments() {
     const supabase = await createClient();
     const { data, error } = await supabase
-        .from('positions')
-        .select('department')
-        .not('department', 'is', null);
+        .from('departments')
+        .select('name');
 
     if (error) throw new Error(error.message);
 
-    const uniqueDepts = Array.from(new Set(data.map(d => d.department))).sort();
+    const uniqueDepts = Array.from(new Set(data.map(d => d.name))).sort();
     return uniqueDepts;
 }
 
@@ -229,4 +230,192 @@ export async function createPosition(formData: FormData) {
 
     revalidatePath('/dashboard/employees');
     revalidatePath('/dashboard/reports'); // Also revalidate reports since they use this data
+}
+
+export async function createEmployeePds(payload: any) {
+    const supabase = await createClient();
+
+    const generatedId = `QNHS-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    // Helper to convert empty string to null
+    const toNull = (val: any) => val === '' ? null : val;
+
+    try {
+        console.log('Starting PDS creation for:', payload.personalInfo.firstName, payload.personalInfo.lastName);
+
+        // 1. Create the base employee record first
+        const { data: employee, error: empError } = await supabase
+            .from('employees')
+            .insert([{
+                employee_id: generatedId,
+                first_name: payload.personalInfo.firstName,
+                middle_name: toNull(payload.personalInfo.middleName),
+                last_name: payload.personalInfo.lastName,
+                birth_date: toNull(payload.personalInfo.birthDate),
+                gender: toNull(payload.personalInfo.gender),
+                tin: toNull(payload.personalInfo.tin),
+                status: 'Active'
+            }])
+            .select()
+            .single();
+
+        if (empError) throw new Error(`Base employee record failed: ${empError.message}`);
+
+        const employeeUuid = employee.id;
+
+        // 2. Insert PDS details
+        const { error: pdsError } = await supabase
+            .from('employee_pds')
+            .insert([{
+                employee_id: employeeUuid,
+                place_of_birth: toNull(payload.personalInfo.placeOfBirth),
+                sex_at_birth: toNull(payload.personalInfo.gender),
+                civil_status: toNull(payload.personalInfo.civilStatus),
+                height_m: payload.personalInfo.height ? parseFloat(payload.personalInfo.height) : null,
+                weight_kg: payload.personalInfo.weight ? parseFloat(payload.personalInfo.weight) : null,
+                blood_type: toNull(payload.personalInfo.bloodType),
+                umid_no: toNull(payload.personalInfo.umid),
+                pagibig_id_no: toNull(payload.personalInfo.pagibig),
+                philhealth_no: toNull(payload.personalInfo.philhealth),
+                philsys_id_no: toNull(payload.personalInfo.philsys),
+                tin_no: toNull(payload.personalInfo.tin),
+                agency_employee_no: toNull(payload.personalInfo.agencyEmployeeNo),
+                citizenship: toNull(payload.personalInfo.citizenship),
+                res_house_no: toNull(payload.personalInfo.resHouseNo),
+                res_street: toNull(payload.personalInfo.resStreet),
+                res_subdivision: toNull(payload.personalInfo.resSubdivision),
+                res_barangay: toNull(payload.personalInfo.resBarangay),
+                res_city: toNull(payload.personalInfo.resCity),
+                res_province: toNull(payload.personalInfo.resProvince),
+                res_zip_code: toNull(payload.personalInfo.resZipCode),
+                perm_house_no: toNull(payload.personalInfo.permHouseNo),
+                perm_street: toNull(payload.personalInfo.permStreet),
+                perm_subdivision: toNull(payload.personalInfo.permSubdivision),
+                perm_barangay: toNull(payload.personalInfo.permBarangay),
+                perm_city: toNull(payload.personalInfo.permCity),
+                perm_province: toNull(payload.personalInfo.permProvince),
+                perm_zip_code: toNull(payload.personalInfo.permZipCode),
+                tel_no: toNull(payload.personalInfo.telNo),
+                mobile_no: toNull(payload.personalInfo.mobileNo),
+                email: toNull(payload.personalInfo.email)
+            }]);
+
+        if (pdsError) throw new Error(`PDS info failed: ${pdsError.message}`);
+
+        // 3. Insert Family
+        const { error: familyError } = await supabase
+            .from('employee_family')
+            .insert([{
+                employee_id: employeeUuid,
+                spouse_lastname: toNull(payload.familyBackground.spouseSurname),
+                spouse_firstname: toNull(payload.familyBackground.spouseFirstName),
+                spouse_middlename: toNull(payload.familyBackground.spouseMiddleName),
+                spouse_extension: toNull(payload.familyBackground.spouseExtension),
+                spouse_occupation: toNull(payload.familyBackground.spouseOccupation),
+                spouse_employer: toNull(payload.familyBackground.spouseEmployer),
+                spouse_tel_no: toNull(payload.familyBackground.spouseTelNo),
+                father_lastname: toNull(payload.familyBackground.fatherSurname),
+                father_firstname: toNull(payload.familyBackground.fatherFirstName),
+                father_middlename: toNull(payload.familyBackground.fatherMiddleName),
+                father_extension: toNull(payload.familyBackground.fatherExtension),
+                mother_maiden_lastname: toNull(payload.familyBackground.motherSurname),
+                mother_firstname: toNull(payload.familyBackground.motherFirstName),
+                mother_middlename: toNull(payload.familyBackground.motherMiddleName)
+            }]);
+
+        if (familyError) throw new Error(`Family background failed: ${familyError.message}`);
+
+        // 4. Insert Children
+        if (payload.familyBackground.children?.length > 0) {
+            const children = payload.familyBackground.children
+                .filter((c: any) => c.name.trim() !== '')
+                .map((c: any) => ({
+                    employee_id: employeeUuid,
+                    child_name: c.name,
+                    birth_date: toNull(c.birthDate)
+                }));
+
+            if (children.length > 0) {
+                const { error: childError } = await supabase.from('employee_children').insert(children);
+                if (childError) throw new Error(`Children records failed: ${childError.message}`);
+            }
+        }
+
+        // 5. Insert Education
+        if (payload.educationalBackground?.length > 0) {
+            const education = payload.educationalBackground
+                .filter((e: any) => e.schoolName.trim() !== '')
+                .map((e: any) => ({
+                    employee_id: employeeUuid,
+                    level: e.level,
+                    school_name: e.schoolName,
+                    degree_course: toNull(e.degree),
+                    attendance_from: toNull(e.from),
+                    attendance_to: toNull(e.to),
+                    level_units_earned: toNull(e.units),
+                    year_graduated: toNull(e.yearGraduated),
+                    honors_received: toNull(e.honors)
+                }));
+
+            if (education.length > 0) {
+                const { error: eduError } = await supabase.from('employee_education').insert(education);
+                if (eduError) throw new Error(`Education records failed: ${eduError.message}`);
+            }
+        }
+
+        // 6. Insert Eligibility
+        if (payload.civilServiceEligibility?.length > 0) {
+            const eligibility = payload.civilServiceEligibility
+                .filter((e: any) => e.type.trim() !== '')
+                .map((e: any) => ({
+                    employee_id: employeeUuid,
+                    eligibility_name: e.type,
+                    rating: toNull(e.rating),
+                    exam_date: toNull(e.date),
+                    license_number: toNull(e.licenseNumber),
+                    license_valid_until: toNull(e.licenseValidUntil)
+                }));
+
+            if (eligibility.length > 0) {
+                const { error: eligError } = await supabase.from('employee_eligibility').insert(eligibility);
+                if (eligError) throw new Error(`Eligibility records failed: ${eligError.message}`);
+            }
+        }
+
+        console.log('PDS created successfully for:', employeeUuid);
+        revalidatePath('/dashboard/employees');
+        return { success: true };
+    } catch (err: any) {
+        console.error('Error in createEmployeePds:', err.message);
+        throw err;
+    }
+}
+
+
+
+export async function getEmployeeFullProfile(employeeUuid: string) {
+    const supabase = await createClient();
+
+    const { data: employee, error: empError } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('id', employeeUuid)
+        .single();
+
+    if (empError) throw new Error(empError.message);
+
+    const { data: pds } = await supabase.from('employee_pds').select('*').eq('employee_id', employeeUuid).single();
+    const { data: family } = await supabase.from('employee_family').select('*').eq('employee_id', employeeUuid).single();
+    const { data: children } = await supabase.from('employee_children').select('*').eq('employee_id', employeeUuid);
+    const { data: education } = await supabase.from('employee_education').select('*').eq('employee_id', employeeUuid).order('year_graduated', { ascending: false });
+    const { data: eligibility } = await supabase.from('employee_eligibility').select('*').eq('employee_id', employeeUuid);
+
+    return {
+        ...employee,
+        pds,
+        family,
+        children: children || [],
+        education: education || [],
+        eligibility: eligibility || []
+    };
 }
