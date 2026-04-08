@@ -88,7 +88,7 @@ export default function AddSalaryGradeModal({ isOpen, onClose }: AddSalaryGradeM
 
     const handleDelete = async (grade: number, title: string) => {
         if (!confirm(`Delete salary record for ${title} (SG ${grade})?`)) return;
-        
+
         try {
             await deleteSalaryGrade(grade, title);
             await fetchGrades();
@@ -188,7 +188,7 @@ export default function AddSalaryGradeModal({ isOpen, onClose }: AddSalaryGradeM
                     {/* List */}
                     <div className="space-y-4">
                         <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Registry of Salary Grades</h3>
-                        
+
                         {isLoading ? (
                             <div className="py-12 text-center">
                                 <Loader2 className="mx-auto text-blue-600 animate-spin" size={32} />

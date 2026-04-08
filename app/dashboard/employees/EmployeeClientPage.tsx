@@ -13,7 +13,7 @@ interface Employee {
     id: string;
     employee_id: string;
     first_name: string;
-    mid_name: string;
+    middle_name: string;
     last_name: string;
     sex: string;
     birthdate: string;
@@ -97,7 +97,7 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
 
     const filteredEmployees = useMemo(() => {
         return employeesWithStatus.filter(emp => {
-            const fullName = `${emp.first_name || ''} ${emp.last_name || ''}`.toLowerCase();
+            const fullName = `${emp.first_name || ''} ${emp.middle_name || ''} ${emp.last_name || ''}`.toLowerCase();
             const matchesSearch = fullName.includes(searchQuery.toLowerCase()) ||
                 (emp.employee_id && emp.employee_id.includes(searchQuery)) ||
                 (emp.item_number && emp.item_number.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -345,27 +345,27 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
                                                             className="w-full h-full object-cover"
                                                         />
                                                     ) : (
-                                                        (emp.first_name?.[0] || '') + (emp.last_name?.[0] || '')
+                                                        ((emp.first_name?.[0] || '') + (emp.last_name?.[0] || '')).toUpperCase()
                                                     )}
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-bold text-slate-800">{emp.first_name} {emp.last_name}</p>
+                                                    <p className="text-sm font-bold text-slate-800 uppercase">{emp.last_name}, {emp.first_name} {emp.middle_name || ''}</p>
                                                     <p className="text-[11px] text-slate-400 font-medium">ID: {emp.employee_id}</p>
                                                     {/* Status Badges */}
                                                     {(emp._licenseExpiring || emp._retiring || emp._newlyHired) && (
                                                         <div className="flex flex-wrap gap-1 mt-1">
                                                             {emp._licenseExpiring && (
-                                                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-amber-100 text-amber-700 border border-amber-200">
+                                                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-amber-100 text-amber-700 border border-amber-200 uppercase">
                                                                     License Expiring
                                                                 </span>
                                                             )}
                                                             {emp._retiring && (
-                                                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-rose-100 text-rose-700 border border-rose-200">
+                                                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-rose-100 text-rose-700 border border-rose-200 uppercase">
                                                                     Retiring
                                                                 </span>
                                                             )}
                                                             {emp._newlyHired && (
-                                                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200 uppercase">
                                                                     Newly Hired
                                                                 </span>
                                                             )}
@@ -375,12 +375,12 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <p className="text-sm font-semibold text-slate-700">{emp.position_title}</p>
-                                            <p className="text-[11px] text-blue-600 font-bold">{emp.department}</p>
+                                            <p className="text-sm font-semibold text-slate-700 uppercase">{emp.position_title}</p>
+                                            <p className="text-[11px] text-blue-600 font-bold uppercase">{emp.department}</p>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="space-y-1">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${emp.classification === 'Teaching'
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase ${emp.classification === 'Teaching'
                                                     ? 'bg-blue-50 text-blue-700 border-blue-100'
                                                     : 'bg-indigo-50 text-indigo-700 border-indigo-100'
                                                     }`}>

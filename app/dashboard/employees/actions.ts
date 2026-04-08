@@ -35,7 +35,7 @@ export async function createEmployee(formData: FormData) {
         employee_id: generatedId,
         photo_url: photoUrl,
         first_name: formData.get('firstName') as string,
-        mid_name: formData.get('middleName') as string,
+        middle_name: formData.get('middleName') as string,
         last_name: formData.get('lastName') as string,
         sex: formData.get('gender') as string,
         birthdate: formData.get('birthdate') as string || null,
@@ -105,7 +105,7 @@ export async function updateEmployee(id: string, formData: FormData) {
         employee_id: formData.get('employeeId') as string,
         photo_url: photoUrl,
         first_name: formData.get('firstName') as string,
-        mid_name: formData.get('middleName') as string,
+        middle_name: formData.get('middleName') as string,
         last_name: formData.get('lastName') as string,
         sex: formData.get('gender') as string,
         birthdate: formData.get('birthdate') as string || null,
@@ -473,4 +473,175 @@ export async function getPdsDropdownValues() {
         units: unique(eduData?.map(d => d.level_units_earned) || []),
         honors: unique(eduData?.map(d => d.honors_received) || []),
     };
+}
+
+export async function updateEmployeeFullProfile(employeeUuid: string, payload: any) {
+    const supabase = await createClient();
+    const toNull = (val: any) => val === '' ? null : val;
+
+    try {
+        // 1. Update Core Employee Record
+        const { error: empError } = await supabase
+            .from('employees')
+            .update({
+                employee_id: payload.personalInfo.employeeId,
+                first_name: payload.personalInfo.firstName,
+                middle_name: toNull(payload.personalInfo.middleName),
+                last_name: payload.personalInfo.lastName,
+                sex: toNull(payload.personalInfo.gender),
+                birthdate: toNull(payload.personalInfo.birthDate),
+                tin: toNull(payload.personalInfo.tin),
+                civil_service_eligibility: toNull(payload.personalInfo.eligibility),
+                license_expiration_date: toNull(payload.personalInfo.licenseExpirationDate),
+                is_deceased: payload.personalInfo.isDeceased === 'true',
+                
+                position_title: toNull(payload.summary.positionTitle),
+                classification: toNull(payload.summary.classification),
+                department: toNull(payload.summary.department),
+                status: toNull(payload.summary.status),
+                level: toNull(payload.summary.level),
+                
+                item_number: toNull(payload.summary.itemNumber) || null,
+                salary_grade: payload.summary.salaryGrade ? parseInt(payload.summary.salaryGrade) : null,
+                step: payload.summary.step ? parseInt(payload.summary.step) : null,
+                annual_salary_authorized: payload.summary.salaryAuthorized ? parseFloat(payload.summary.salaryAuthorized) : null,
+                annual_salary_actual: payload.summary.salaryActual ? parseFloat(payload.summary.salaryActual) : null,
+                
+                area_code: toNull(payload.summary.areaCode),
+                area_type: toNull(payload.summary.areaType),
+                ppa_attribution: toNull(payload.summary.ppaAttribution),
+                
+                original_appointment_date: toNull(payload.summary.appointmentDate),
+                last_promotion_date: toNull(payload.summary.promotionDate),
+                retirement_date: toNull(payload.summary.retirementDate),
+                resigned_date: toNull(payload.summary.resignedDate),
+            })
+            .eq('id', employeeUuid);
+
+        if (empError) throw new Error(`Core update failed: ${empError.message}`);
+
+        // 2. Upsert PDS Details
+        const { error: pdsError } = await supabase
+            .from('employee_pds')
+            .upsert({
+                employee_id: employeeUuid,
+                place_of_birth: toNull(payload.personalInfo.placeOfBirth),
+                sex_at_birth: toNull(payload.personalInfo.gender),
+                civil_status: toNull(payload.personalInfo.civilStatus),
+                height_m: payload.personalInfo.height ? parseFloat(payload.personalInfo.height) : null,
+                weight_kg: payload.personalInfo.weight ? parseFloat(payload.personalInfo.weight) : null,
+                blood_type: toNull(payload.personalInfo.bloodType),
+                umid_no: toNull(payload.personalInfo.umid),
+                pagibig_id_no: toNull(payload.personalInfo.pagibig),
+                philhealth_no: toNull(payload.personalInfo.philhealth),
+                philsys_id_no: toNull(payload.personalInfo.philsys),
+                tin_no: toNull(payload.personalInfo.tin),
+                agency_employee_no: toNull(payload.personalInfo.agencyEmployeeNo),
+                citizenship: toNull(payload.personalInfo.citizenship),
+                res_house_no: toNull(payload.personalInfo.resHouseNo),
+                res_street: toNull(payload.personalInfo.resStreet),
+                res_subdivision: toNull(payload.personalInfo.resSubdivision),
+                res_barangay: toNull(payload.personalInfo.resBarangay),
+                res_city: toNull(payload.personalInfo.resCity),
+                res_province: toNull(payload.personalInfo.resProvince),
+                res_zip_code: toNull(payload.personalInfo.resZipCode),
+                perm_house_no: toNull(payload.personalInfo.permHouseNo),
+                perm_street: toNull(payload.personalInfo.permStreet),
+                perm_subdivision: toNull(payload.personalInfo.permSubdivision),
+                perm_barangay: toNull(payload.personalInfo.permBarangay),
+                perm_city: toNull(payload.personalInfo.permCity),
+                perm_province: toNull(payload.personalInfo.permProvince),
+                perm_zip_code: toNull(payload.personalInfo.permZipCode),
+                tel_no: toNull(payload.personalInfo.telNo),
+                mobile_no: toNull(payload.personalInfo.mobileNo),
+                email: toNull(payload.personalInfo.email)
+            }, { onConflict: 'employee_id' });
+
+        if (pdsError) throw new Error(`PDS update failed: ${pdsError.message}`);
+
+        // 3. Upsert Family Information
+        const { error: familyError } = await supabase
+            .from('employee_family')
+            .upsert({
+                employee_id: employeeUuid,
+                spouse_lastname: toNull(payload.familyBackground.spouseSurname),
+                spouse_firstname: toNull(payload.familyBackground.spouseFirstName),
+                spouse_middlename: toNull(payload.familyBackground.spouseMiddleName),
+                spouse_extension: toNull(payload.familyBackground.spouseExtension),
+                spouse_occupation: toNull(payload.familyBackground.spouseOccupation),
+                spouse_employer: toNull(payload.familyBackground.spouseEmployer),
+                spouse_tel_no: toNull(payload.familyBackground.spouseTelNo),
+                father_lastname: toNull(payload.familyBackground.fatherSurname),
+                father_firstname: toNull(payload.familyBackground.fatherFirstName),
+                father_middlename: toNull(payload.familyBackground.fatherMiddleName),
+                father_extension: toNull(payload.familyBackground.fatherExtension),
+                mother_maiden_lastname: toNull(payload.familyBackground.motherSurname),
+                mother_firstname: toNull(payload.familyBackground.motherFirstName),
+                mother_middlename: toNull(payload.familyBackground.motherMiddleName)
+            }, { onConflict: 'employee_id' });
+
+        if (familyError) throw new Error(`Family update failed: ${familyError.message}`);
+
+        // 4. Children (Delete and Re-insert)
+        await supabase.from('employee_children').delete().eq('employee_id', employeeUuid);
+        if (payload.familyBackground.children?.length > 0) {
+            const children = payload.familyBackground.children
+                .filter((c: any) => c.name.trim() !== '')
+                .map((c: any) => ({
+                    employee_id: employeeUuid,
+                    child_name: c.name,
+                    birth_date: toNull(c.birthDate)
+                }));
+            if (children.length > 0) {
+                const { error: childError } = await supabase.from('employee_children').insert(children);
+                if (childError) throw new Error(`Children update failed: ${childError.message}`);
+            }
+        }
+
+        // 5. Education (Delete and Re-insert)
+        await supabase.from('employee_education').delete().eq('employee_id', employeeUuid);
+        if (payload.educationalBackground?.length > 0) {
+            const education = payload.educationalBackground
+                .filter((e: any) => e.schoolName.trim() !== '')
+                .map((e: any) => ({
+                    employee_id: employeeUuid,
+                    level: e.level,
+                    school_name: e.schoolName,
+                    degree_course: toNull(e.degree),
+                    attendance_from: toNull(e.from),
+                    attendance_to: toNull(e.to),
+                    level_units_earned: toNull(e.units),
+                    year_graduated: toNull(e.yearGraduated),
+                    honors_received: toNull(e.honors)
+                }));
+            if (education.length > 0) {
+                const { error: eduError } = await supabase.from('employee_education').insert(education);
+                if (eduError) throw new Error(`Education update failed: ${eduError.message}`);
+            }
+        }
+
+        // 6. Eligibility (Delete and Re-insert)
+        await supabase.from('employee_eligibility').delete().eq('employee_id', employeeUuid);
+        if (payload.civilServiceEligibility?.length > 0) {
+            const eligibility = payload.civilServiceEligibility
+                .filter((e: any) => e.type.trim() !== '')
+                .map((e: any) => ({
+                    employee_id: employeeUuid,
+                    eligibility_name: e.type,
+                    rating: toNull(e.rating),
+                    exam_date: toNull(e.date),
+                    license_number: toNull(e.licenseNumber),
+                    license_valid_until: toNull(e.licenseValidUntil)
+                }));
+            if (eligibility.length > 0) {
+                const { error: eligError } = await supabase.from('employee_eligibility').insert(eligibility);
+                if (eligError) throw new Error(`Eligibility update failed: ${eligError.message}`);
+            }
+        }
+
+        revalidatePath('/dashboard/employees');
+        return { success: true };
+    } catch (err: any) {
+        throw new Error(err.message || 'Full Profile update failed');
+    }
 }

@@ -23,11 +23,11 @@ export async function upsertSalaryGrade(grade: number, position_title: string, s
     const supabase = await createClient();
     const { data, error } = await supabase
         .from('salary_grades')
-        .upsert({ 
-            grade, 
-            position_title, 
-            salary, 
-            updated_at: new Date().toISOString() 
+        .upsert({
+            grade,
+            position_title,
+            salary,
+            updated_at: new Date().toISOString()
         })
         .select()
         .single();
@@ -42,10 +42,10 @@ export async function upsertSalaryGrade(grade: number, position_title: string, s
 }
 
 export async function updateSalaryGrade(
-    oldGrade: number, 
-    oldTitle: string, 
-    newGrade: number, 
-    newTitle: string, 
+    oldGrade: number,
+    oldTitle: string,
+    newGrade: number,
+    newTitle: string,
     salary: number
 ) {
     const supabase = await createClient();
@@ -57,7 +57,7 @@ export async function updateSalaryGrade(
             .from('salary_grades')
             .delete()
             .match({ grade: oldGrade, position_title: oldTitle });
-        
+
         if (delError) throw new Error(delError.message);
 
         // Insert new

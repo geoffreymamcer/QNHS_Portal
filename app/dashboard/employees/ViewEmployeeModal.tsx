@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-    X, User, IdCard, Briefcase, Calendar, MapPin, 
-    ShieldAlert, FileText, History, ExternalLink, 
-    Banknote, GraduationCap, Users, Award, 
-    Fingerprint, Contact, Loader2, CheckCircle2 
+import {
+    X, User, IdCard, Briefcase, Calendar, MapPin,
+    ShieldAlert, FileText, History, ExternalLink,
+    Banknote, GraduationCap, Users, Award,
+    Fingerprint, Contact, Loader2, CheckCircle2
 } from 'lucide-react';
 import { getEmployeeFullProfile } from './actions';
 
@@ -109,7 +109,7 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
                         <div className="mb-2 space-y-1">
                             <div className="flex items-center gap-3 flex-wrap">
                                 <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight">
-                                    {employee.first_name} {employee.mid_name ? `${employee.mid_name[0]}. ` : ''}{employee.last_name}
+                                    {employee.last_name}, {employee.first_name} {employee.middle_name || ''}
                                 </h2>
                                 <div className="flex gap-2">
                                     {isRetiring && <span className="bg-amber-100 text-amber-700 text-[10px] font-black px-2.5 py-1 rounded-full border border-amber-200">RETIRING</span>}
@@ -132,11 +132,10 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl transition-all whitespace-nowrap font-bold text-xs uppercase tracking-widest ${
-                                activeTab === tab.id
-                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                                    : 'text-slate-500 hover:bg-white hover:text-slate-700'
-                            }`}
+                            className={`flex items-center gap-2 px-6 py-2.5 rounded-2xl transition-all whitespace-nowrap font-bold text-xs uppercase tracking-widest ${activeTab === tab.id
+                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                                : 'text-slate-500 hover:bg-white hover:text-slate-700'
+                                }`}
                         >
                             <tab.icon size={14} />
                             {tab.label}
@@ -296,9 +295,9 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
                     )}
 
                     {activeTab === 'pds' && (
-                         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                             {/* Detailed Personal info */}
-                             <section className="space-y-6">
+                        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            {/* Detailed Personal info */}
+                            <section className="space-y-6">
                                 <h3 className="text-xs font-black text-blue-600 uppercase tracking-widest flex items-center gap-2">
                                     <Contact size={14} /> Personal Details & Identifiers
                                 </h3>
@@ -321,7 +320,7 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
                                     </div>
                                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                                         <p className="text-[10px] font-black text-slate-400 uppercase">Height (m) / Weight (kg)</p>
-                                        <p className="text-sm font-bold text-slate-700">{fullData?.pds?.height_m || '?' } m / {fullData?.pds?.weight_kg || '?' } kg</p>
+                                        <p className="text-sm font-bold text-slate-700">{fullData?.pds?.height_m || '?'} m / {fullData?.pds?.weight_kg || '?'} kg</p>
                                     </div>
                                     <div className="p-4 bg-slate-100/50 rounded-2xl border border-slate-200 col-span-1">
                                         <p className="text-[10px] font-black text-slate-400 uppercase">PhilSys ID</p>
@@ -351,10 +350,10 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
                                         <p className="text-sm font-bold text-blue-700">{fullData?.pds?.email || 'N/A'}</p>
                                     </div>
                                 </div>
-                             </section>
+                            </section>
 
-                             {/* Addresses */}
-                             <section className="space-y-6">
+                            {/* Addresses */}
+                            <section className="space-y-6">
                                 <h3 className="text-xs font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2">
                                     <MapPin size={14} /> Full Address & Contact
                                 </h3>
@@ -388,39 +387,39 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
                                         <p className="text-sm font-bold text-slate-700 italic">{fullData?.pds?.mobile_no || 'N/A'}</p>
                                     </div>
                                 </div>
-                             </section>
-                         </div>
+                            </section>
+                        </div>
                     )}
 
                     {activeTab === 'family' && (
-                         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                 {/* Parents */}
-                                 <section className="space-y-6">
+                        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                {/* Parents */}
+                                <section className="space-y-6">
                                     <h3 className="text-xs font-black text-blue-600 uppercase tracking-widest flex items-center gap-2">
                                         <Users size={14} /> Parents Information
                                     </h3>
                                     <div className="p-6 bg-blue-50/20 rounded-[2rem] border border-blue-50 space-y-6">
                                         <div>
                                             <p className="text-[10px] font-black text-blue-400 uppercase mb-1">Father's Name</p>
-                                            <p className="text-sm font-bold text-slate-800">
-                                                {fullData?.family?.father_firstname} {fullData?.family?.father_middlename} {fullData?.family?.father_lastname} {fullData?.family?.father_extension}
+                                            <p className="text-sm font-bold text-slate-800 uppercase">
+                                                {fullData?.family?.father_lastname}, {fullData?.family?.father_firstname} {fullData?.family?.father_middlename || ''} {fullData?.family?.father_extension || ''}
                                                 {(!fullData?.family?.father_firstname && !fullData?.family?.father_lastname) && 'N/A'}
                                             </p>
                                         </div>
                                         <hr className="border-blue-100/50" />
                                         <div>
                                             <p className="text-[10px] font-black text-blue-400 uppercase mb-1">Mother's Maiden Name</p>
-                                            <p className="text-sm font-bold text-slate-800">
-                                                {fullData?.family?.mother_firstname} {fullData?.family?.mother_middlename} {fullData?.family?.mother_maiden_lastname}
+                                            <p className="text-sm font-bold text-slate-800 uppercase">
+                                                {fullData?.family?.mother_maiden_lastname}, {fullData?.family?.mother_firstname} {fullData?.family?.mother_middlename || ''}
                                                 {(!fullData?.family?.mother_firstname && !fullData?.family?.mother_maiden_lastname) && 'N/A'}
                                             </p>
                                         </div>
                                     </div>
-                                 </section>
+                                </section>
 
-                                 {/* Spouse */}
-                                 <section className="space-y-6">
+                                {/* Spouse */}
+                                <section className="space-y-6">
                                     <h3 className="text-xs font-black text-indigo-600 uppercase tracking-widest flex items-center gap-2">
                                         <User size={14} /> Spouse Information
                                     </h3>
@@ -429,8 +428,8 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
                                             <>
                                                 <div>
                                                     <p className="text-[10px] font-black text-indigo-400 uppercase mb-1">Name</p>
-                                                    <p className="text-sm font-bold text-slate-800">
-                                                        {fullData.family.spouse_firstname} {fullData.family.spouse_middlename} {fullData.family.spouse_lastname} {fullData.family.spouse_extension}
+                                                    <p className="text-sm font-bold text-slate-800 uppercase">
+                                                        {fullData.family.spouse_lastname}, {fullData.family.spouse_firstname} {fullData.family.spouse_middlename || ''} {fullData.family.spouse_extension || ''}
                                                     </p>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-4">
@@ -448,11 +447,11 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
                                             <p className="text-sm font-bold text-slate-400 text-center py-6">No spouse information recorded.</p>
                                         )}
                                     </div>
-                                 </section>
-                             </div>
+                                </section>
+                            </div>
 
-                             {/* Children */}
-                             <section className="space-y-6">
+                            {/* Children */}
+                            <section className="space-y-6">
                                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                                     <Users size={14} /> Children Registry
                                 </h3>
@@ -476,13 +475,13 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
                                         <p className="text-xs font-bold uppercase tracking-widest">No children recorded</p>
                                     </div>
                                 )}
-                             </section>
-                         </div>
+                            </section>
+                        </div>
                     )}
 
                     {activeTab === 'education' && (
-                         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                             <section className="space-y-8 pb-10">
+                        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <section className="space-y-8 pb-10">
                                 <h3 className="text-xs font-black text-blue-600 uppercase tracking-widest flex items-center gap-2">
                                     <GraduationCap size={14} /> Educational Background History
                                 </h3>
@@ -522,13 +521,13 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
                                         <p className="text-sm font-bold uppercase tracking-widest italic text-center">No educational background records found in PDS.</p>
                                     </div>
                                 )}
-                             </section>
-                         </div>
+                            </section>
+                        </div>
                     )}
 
                     {activeTab === 'eligibility' && (
-                         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                             <section className="space-y-6">
+                        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <section className="space-y-6">
                                 <h3 className="text-xs font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2">
                                     <Award size={14} /> Civil Service Eligibility Records
                                 </h3>
@@ -568,8 +567,8 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
                                         <p className="text-sm font-bold uppercase tracking-widest italic">No eligibility records recorded in PDS.</p>
                                     </div>
                                 )}
-                             </section>
-                         </div>
+                            </section>
+                        </div>
                     )}
                 </div>
 
