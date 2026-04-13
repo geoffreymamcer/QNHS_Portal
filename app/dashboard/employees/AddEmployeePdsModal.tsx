@@ -714,17 +714,17 @@ export default function AddEmployeePdsModal({ isOpen, onClose }: AddEmployeePdsM
                                             </button>
                                         </div>
                                         <div className="space-y-4">
-                                            {formData.familyBackground.children.map((child, index) => (
-                                                <div key={index} className="flex gap-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-100 items-end animate-in fade-in slide-in-from-top-2 duration-300 group">
-                                                    <div className="flex-1 space-y-1.5">
+                                             {formData.familyBackground.children.map((child, index) => (
+                                                <div key={index} className="flex flex-col md:flex-row gap-4 p-5 bg-slate-50/50 rounded-2xl border border-slate-100 animate-in fade-in slide-in-from-top-2 duration-300 group relative">
+                                                    <div className="flex-1 space-y-1.5 font-semibold">
                                                         <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Full name of child</label>
-                                                        <input value={child.name} onChange={(e) => updateChild(index, 'name', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2 px-4 text-sm outline-none focus:border-blue-300" placeholder="John Doe Jr." />
+                                                        <input value={child.name} onChange={(e) => updateChild(index, 'name', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:border-blue-300 transition-all shadow-sm" placeholder="John Doe Jr." />
                                                     </div>
-                                                    <div className="w-48 space-y-1.5">
+                                                    <div className="w-full md:w-48 space-y-1.5">
                                                         <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Birth date</label>
-                                                        <input type="date" value={child.birthDate} onChange={(e) => updateChild(index, 'birthDate', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2 px-4 text-sm outline-none focus:border-blue-300" />
+                                                        <input type="date" value={child.birthDate} onChange={(e) => updateChild(index, 'birthDate', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:border-blue-300 transition-all shadow-sm" />
                                                     </div>
-                                                    <button onClick={() => removeChild(index)} className="p-2.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all group-hover:scale-105">
+                                                    <button onClick={() => removeChild(index)} className="absolute top-2 right-2 md:relative md:top-0 md:right-0 p-2.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all group-hover:scale-105 md:self-end">
                                                         <Trash2 size={18} />
                                                     </button>
                                                 </div>

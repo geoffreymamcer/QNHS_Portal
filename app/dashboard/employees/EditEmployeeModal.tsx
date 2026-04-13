@@ -538,10 +538,18 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
                                         </div>
                                         <div className="space-y-3">
                                             {formData.familyBackground.children.map((child, i) => (
-                                                <div key={i} className="flex gap-4 items-center bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
-                                                    <input placeholder="Child full name" value={child.name} onChange={(e) => updateChildren(i, 'name', e.target.value)} className="flex-1 bg-white border border-slate-200 rounded-lg py-2 px-3 text-sm" />
-                                                    <input type="date" value={child.birthDate} onChange={(e) => updateChildren(i, 'birthDate', e.target.value)} className="w-48 bg-white border border-slate-200 rounded-lg py-2 px-3 text-sm" />
-                                                    <button type="button" onClick={() => setFormData(p => ({ ...p, familyBackground: { ...p.familyBackground, children: p.familyBackground.children.filter((_, idx) => idx !== i) } }))} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg"><Trash2 size={16} /></button>
+                                                <div key={i} className="flex flex-col md:flex-row gap-4 p-5 bg-slate-50/50 rounded-2xl border border-slate-100 animate-in fade-in slide-in-from-top-2 duration-300 group relative">
+                                                    <div className="flex-1 space-y-1.5 font-semibold">
+                                                        <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Full name of child</label>
+                                                        <input placeholder="Child full name" value={child.name} onChange={(e) => updateChildren(i, 'name', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:border-blue-300 transition-all shadow-sm" />
+                                                    </div>
+                                                    <div className="w-full md:w-48 space-y-1.5">
+                                                        <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Birth date</label>
+                                                        <input type="date" value={child.birthDate} onChange={(e) => updateChildren(i, 'birthDate', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:border-blue-300 transition-all shadow-sm" />
+                                                    </div>
+                                                    <button type="button" onClick={() => setFormData(p => ({ ...p, familyBackground: { ...p.familyBackground, children: p.familyBackground.children.filter((_, idx) => idx !== i) } }))} className="absolute top-2 right-2 md:relative md:top-0 md:right-0 p-2.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all group-hover:scale-105 md:self-end">
+                                                        <Trash2 size={16} />
+                                                    </button>
                                                 </div>
                                             ))}
                                         </div>
