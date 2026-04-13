@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, User, Users, GraduationCap, Award, Plus, Trash2, Save, ChevronRight, ChevronLeft, MapPin, Contact, Fingerprint, Calendar, CheckCircle2, Search, PlusCircle } from 'lucide-react';
 import { createEmployeePds, getPdsDropdownValues } from './actions';
 import { useRouter } from 'next/navigation';
@@ -32,76 +32,117 @@ const PdsSelect = ({
     required?: boolean,
     className?: string
 }) => {
-    // Determine if the current value is NOT in the database list
-    // If it's not and it's not empty, it's a "custom" value
-    const [isCustom, setIsCustom] = useState(!options.includes(value) && value !== '');
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState(value || '');
+    const [highlightedIndex, setHighlightedIndex] = useState(-1);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
 
-    const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const val = e.target.value;
-        if (val === 'ADD_NEW_VALUE') {
-            setIsCustom(true);
-            // Optionally clear or keep. Keep current value if switching to custom
-        } else {
-            setIsCustom(false);
-            onChange(name, val);
+    // Sync searchTerm with value prop changes
+    useEffect(() => {
+        setSearchTerm(value || '');
+    }, [value]);
+
+    const filteredOptions = options.filter(opt => 
+        opt.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    // Filter out EXACT match if it's already selected to avoid redundant lists
+    const showOptions = isOpen && (filteredOptions.length > 0);
+
+    const handleSelect = (option: string) => {
+        setSearchTerm(option);
+        onChange(name, option);
+        setIsOpen(false);
+        setHighlightedIndex(-1);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setIsOpen(true);
+            setHighlightedIndex(prev => (prev < filteredOptions.length - 1 ? prev + 1 : prev));
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setHighlightedIndex(prev => (prev > 0 ? prev - 1 : prev));
+        } else if (e.key === 'Enter') {
+            if (isOpen && highlightedIndex >= 0) {
+                e.preventDefault();
+                handleSelect(filteredOptions[highlightedIndex]);
+            } else {
+                // If user just presses enter, save whatever they typed
+                setIsOpen(false);
+            }
+        } else if (e.key === 'Escape') {
+            setIsOpen(false);
         }
     };
 
+    // Close on click outside
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        onChange(name, e.target.value);
+        const val = e.target.value;
+        setSearchTerm(val);
+        onChange(name, val); // Continuous update allows saving "custom" values
+        setIsOpen(true);
+        setHighlightedIndex(-1);
     };
 
     return (
-        <div className={`space-y-1.5 ${className}`}>
+        <div className={`space-y-1.5 relative ${className}`} ref={containerRef}>
             <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase tracking-tight">
                 {label} {required && <span className="text-red-500">*</span>}
             </label>
             
-            {!isCustom ? (
-                <div className="relative group">
-                    <select 
-                        value={value} 
-                        onChange={handleSelectChange}
-                        required={required && !isCustom}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none transition-all focus:ring-4 focus:ring-blue-600/5 focus:border-blue-200 appearance-none"
-                    >
-                        <option value="">{placeholder || `Select ${label}`}</option>
-                        {options.map((opt, i) => (
-                            <option key={`${opt}-${i}`} value={opt}>{opt}</option>
-                        ))}
-                        <option value="ADD_NEW_VALUE" className="text-blue-600 font-bold bg-blue-50">
-                            + Add New / Other...
-                        </option>
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-hover:text-slate-600 transition-colors">
-                        <ChevronRight size={14} className="rotate-90" />
-                    </div>
+            <div className="relative group">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-blue-500 transition-colors pointer-events-none">
+                    <Search size={14} />
                 </div>
-            ) : (
-                <div className="relative animate-in slide-in-from-top-1 duration-200">
-                    <input 
-                        name={name}
-                        value={value}
-                        onChange={handleInputChange}
-                        placeholder={`Type ${label.toLowerCase()}...`}
-                        className="w-full bg-blue-50/50 border border-blue-200 rounded-xl py-2.5 px-4 text-sm outline-none ring-4 ring-blue-600/5 focus:ring-blue-600/10 focus:border-blue-400 transition-all pr-10"
-                        autoFocus
-                        required={required}
-                    />
-                    <button 
-                        type="button"
-                        onClick={() => {
-                            setIsCustom(false);
-                            // If user cancels, we might want to clear or reset to empty
-                            if (!options.includes(value)) onChange(name, '');
-                        }}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
-                        title="Back to list"
-                    >
-                        <X size={16} />
-                    </button>
-                    <div className="absolute -top-2 left-6 px-2 bg-white text-[9px] font-black text-blue-500 uppercase tracking-widest border border-blue-100 rounded-full">
-                        Custom Entry
+                <input 
+                    ref={inputRef}
+                    type="text"
+                    value={searchTerm}
+                    onChange={handleInputChange}
+                    onFocus={() => setIsOpen(true)}
+                    onKeyDown={handleKeyDown}
+                    placeholder={placeholder || `Search or type ${label.toLowerCase()}...`}
+                    required={required}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-10 text-sm outline-none transition-all focus:ring-4 focus:ring-blue-600/5 focus:border-blue-200 focus:bg-white"
+                />
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-300 group-hover:text-slate-500 transition-colors">
+                    <ChevronRight size={14} className={`transition-transform duration-300 ${isOpen ? 'rotate-90' : 'rotate-0'}`} />
+                </div>
+            </div>
+
+            {/* Dropdown Results */}
+            {showOptions && (
+                <div className="absolute z-[100] left-0 right-0 top-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl shadow-blue-900/10 overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-60 overflow-y-auto custom-scrollbar">
+                    <div className="p-1">
+                        {filteredOptions.map((opt, i) => (
+                            <button
+                                key={`${opt}-${i}`}
+                                type="button"
+                                onClick={() => handleSelect(opt)}
+                                onMouseEnter={() => setHighlightedIndex(i)}
+                                className={`w-full text-left px-4 py-2.5 text-sm rounded-xl transition-all flex items-center justify-between group ${
+                                    highlightedIndex === i 
+                                    ? 'bg-blue-50 text-blue-700' 
+                                    : 'text-slate-600 hover:bg-slate-50'
+                                }`}
+                            >
+                                <span className="font-medium">{opt}</span>
+                                {highlightedIndex === i && <CheckCircle2 size={14} className="text-blue-500 animate-in fade-in slide-in-from-left-2" />}
+                            </button>
+                        ))}
                     </div>
                 </div>
             )}
@@ -380,12 +421,12 @@ export default function AddEmployeePdsModal({ isOpen, onClose }: AddEmployeePdsM
                 </div>
 
                 {/* Tabs Navigation */}
-                <div className="flex bg-slate-50 border-b border-slate-100 p-1.5 gap-1 mx-4 my-4 rounded-2xl">
+                <div className="flex bg-slate-50 border-b border-slate-100 p-1.5 gap-1 mx-4 my-4 rounded-2xl overflow-x-auto no-scrollbar shrink-0">
                     {tabs.map(tab => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                            className={`flex-none flex items-center justify-center gap-2 py-3 px-6 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
                                 activeTab === tab.id 
                                 ? 'bg-white text-blue-600 shadow-xl shadow-blue-900/5 ring-1 ring-slate-100' 
                                 : 'text-slate-400 hover:text-slate-600 hover:bg-white/50'
@@ -844,8 +885,8 @@ export default function AddEmployeePdsModal({ isOpen, onClose }: AddEmployeePdsM
                 </div>
 
                 {/* Footer and Navigation */}
-                <div className="px-8 py-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-                    <div className="flex gap-2">
+                <div className="px-6 py-4 sm:px-8 sm:py-6 bg-slate-50 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-center justify-between gap-4 shrink-0">
+                    <div className="flex w-full sm:w-auto gap-2">
                         {activeTab !== 'personal' && (
                             <button 
                                 onClick={() => {
@@ -853,16 +894,15 @@ export default function AddEmployeePdsModal({ isOpen, onClose }: AddEmployeePdsM
                                     if (activeTab === 'education') setActiveTab('family');
                                     if (activeTab === 'eligibility') setActiveTab('education');
                                 }}
-                                className="flex items-center gap-2 px-8 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest text-slate-500 hover:text-slate-800 hover:bg-white transition-all border border-transparent hover:border-slate-200 shadow-sm shadow-blue-950/5"
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 sm:px-8 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest text-slate-500 hover:text-slate-800 hover:bg-white transition-all border border-transparent hover:border-slate-200 shadow-sm shadow-blue-950/5"
                             >
                                 <ChevronLeft size={18} /> Previous Tab
                             </button>
                         )}
+                        <button onClick={onClose} className="flex-1 sm:flex-none px-6 sm:px-8 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-all text-center">Dismiss</button>
                     </div>
                     
-                    <div className="flex gap-4">
-                        <button onClick={onClose} className="px-8 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-all">Dismiss</button>
-                        
+                    <div className="w-full sm:w-auto">
                         {activeTab !== 'eligibility' ? (
                             <button 
                                 onClick={() => {
@@ -870,7 +910,7 @@ export default function AddEmployeePdsModal({ isOpen, onClose }: AddEmployeePdsM
                                     else if (activeTab === 'family') setActiveTab('education');
                                     else if (activeTab === 'education') setActiveTab('eligibility');
                                 }}
-                                className="flex items-center gap-2 px-14 py-3 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] text-white bg-blue-600 hover:bg-blue-700 shadow-2xl shadow-blue-500/20 transition-all active:scale-95"
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 px-10 sm:px-14 py-3 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] text-white bg-blue-600 hover:bg-blue-700 shadow-2xl shadow-blue-500/20 transition-all active:scale-95"
                             >
                                 Continue <ChevronRight size={18} />
                             </button>
@@ -878,7 +918,7 @@ export default function AddEmployeePdsModal({ isOpen, onClose }: AddEmployeePdsM
                             <button 
                                 onClick={handleSubmit} 
                                 disabled={isLoading}
-                                className="flex items-center gap-2 px-16 py-3 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] text-white bg-emerald-600 hover:bg-emerald-700 shadow-2xl shadow-emerald-500/20 transition-all active:scale-95 disabled:opacity-50"
+                                className="w-full sm:w-auto flex items-center justify-center gap-2 px-10 sm:px-16 py-3 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] text-white bg-emerald-600 hover:bg-emerald-700 shadow-2xl shadow-emerald-500/20 transition-all active:scale-95 disabled:opacity-50"
                             >
                                 {isLoading ? 'Finalizing...' : 'Sync Full PDS'} <Save size={18} />
                             </button>
