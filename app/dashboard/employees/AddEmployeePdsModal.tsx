@@ -468,29 +468,29 @@ export default function AddEmployeePdsModal({ isOpen, onClose }: AddEmployeePdsM
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                             <div className="space-y-1.5 md:col-span-1">
                                                 <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">SURNAME <span className="text-red-500">*</span></label>
-                                                <input name="lastName" value={formData.personalInfo.lastName} onChange={handlePersonalInfoChange} required className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/10 outline-none transition-all" />
+                                                <input name="lastName" value={formData.personalInfo.lastName || ''} onChange={handlePersonalInfoChange} required className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/10 outline-none transition-all" />
                                             </div>
                                             <div className="space-y-1.5 md:col-span-1">
                                                 <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">FIRST NAME <span className="text-red-500">*</span></label>
-                                                <input name="firstName" value={formData.personalInfo.firstName} onChange={handlePersonalInfoChange} required className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/10 outline-none transition-all" />
+                                                <input name="firstName" value={formData.personalInfo.firstName || ''} onChange={handlePersonalInfoChange} required className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/10 outline-none transition-all" />
                                             </div>
                                             <div className="space-y-1.5 md:col-span-1">
                                                 <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">MIDDLE NAME</label>
-                                                <input name="middleName" value={formData.personalInfo.middleName} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/10 outline-none transition-all" />
+                                                <input name="middleName" value={formData.personalInfo.middleName || ''} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/10 outline-none transition-all" />
                                             </div>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
                                             <div className="space-y-1.5">
                                                 <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">DATE OF BIRTH <span className="text-red-500">*</span></label>
-                                                <input type="date" name="birthDate" value={formData.personalInfo.birthDate} onChange={handlePersonalInfoChange} required className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5 transition-all" />
+                                                <input type="date" name="birthDate" value={formData.personalInfo.birthDate || ''} onChange={handlePersonalInfoChange} required className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5 transition-all" />
                                             </div>
                                             <div className="space-y-1.5">
                                                 <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">PLACE OF BIRTH</label>
-                                                <input name="placeOfBirth" value={formData.personalInfo.placeOfBirth} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5 transition-all" />
+                                                <input name="placeOfBirth" value={formData.personalInfo.placeOfBirth || ''} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5 transition-all" />
                                             </div>
                                             <div className="space-y-1.5">
                                                 <label className="text-[11px] font-bold text-slate-500 ml-1">SEX AT BIRTH <span className="text-red-500">*</span></label>
-                                                <select name="gender" value={formData.personalInfo.gender} onChange={handlePersonalInfoChange} required className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5 appearance-none">
+                                                <select name="gender" value={formData.personalInfo.gender || ''} onChange={handlePersonalInfoChange} required className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5 appearance-none">
                                                     <option value="">Select</option>
                                                     <option value="Male">Male</option>
                                                     <option value="Female">Female</option>
@@ -498,7 +498,7 @@ export default function AddEmployeePdsModal({ isOpen, onClose }: AddEmployeePdsM
                                             </div>
                                             <div className="space-y-1.5">
                                                 <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">CIVIL STATUS</label>
-                                                <select name="civilStatus" value={formData.personalInfo.civilStatus} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5 appearance-none">
+                                                <select name="civilStatus" value={formData.personalInfo.civilStatus || ''} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5 appearance-none">
                                                     <option value="">Select</option>
                                                     <option value="Single">Single</option>
                                                     <option value="Married">Married</option>
@@ -528,11 +528,11 @@ export default function AddEmployeePdsModal({ isOpen, onClose }: AddEmployeePdsM
                                         <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
                                             <div className="space-y-1.5">
                                                 <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">HEIGHT (m)</label>
-                                                <input type="number" step="0.01" name="height" value={formData.personalInfo.height} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" placeholder="1.75" />
+                                                <input type="number" step="0.01" name="height" value={formData.personalInfo.height || ''} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" placeholder="1.75" />
                                             </div>
                                             <div className="space-y-1.5">
                                                 <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">WEIGHT (kg)</label>
-                                                <input type="number" step="0.1" name="weight" value={formData.personalInfo.weight} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" placeholder="70.5" />
+                                                <input type="number" step="0.1" name="weight" value={formData.personalInfo.weight || ''} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" placeholder="70.5" />
                                             </div>
                                             <PdsSelect 
                                                 label="BLOOD TYPE" 
@@ -543,29 +543,29 @@ export default function AddEmployeePdsModal({ isOpen, onClose }: AddEmployeePdsM
                                             />
                                             <div className="space-y-1.5">
                                                 <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">TIN NUMBER</label>
-                                                <input name="tin" value={formData.personalInfo.tin} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" />
+                                                <input name="tin" value={formData.personalInfo.tin || ''} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" />
                                             </div>
                                             <div className="space-y-1.5">
                                                 <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">AGENCY EMPLOYEE NO.</label>
-                                                <input name="agencyEmployeeNo" value={formData.personalInfo.agencyEmployeeNo} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" />
+                                                <input name="agencyEmployeeNo" value={formData.personalInfo.agencyEmployeeNo || ''} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" />
                                             </div>
                                             <div className="space-y-1.5">
                                                 <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">UMID ID NO.</label>
-                                                <input name="umid" value={formData.personalInfo.umid} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" />
+                                                <input name="umid" value={formData.personalInfo.umid || ''} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" />
                                             </div>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                             <div className="space-y-1.5">
                                                 <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">PAGIBIG ID NO.</label>
-                                                <input name="pagibig" value={formData.personalInfo.pagibig} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" />
+                                                <input name="pagibig" value={formData.personalInfo.pagibig || ''} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" />
                                             </div>
                                             <div className="space-y-1.5">
                                                 <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">PHILHEALTH ID NO.</label>
-                                                <input name="philhealth" value={formData.personalInfo.philhealth} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" />
+                                                <input name="philhealth" value={formData.personalInfo.philhealth || ''} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" />
                                             </div>
                                             <div className="space-y-1.5">
                                                 <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">PHILSYS ID NUMBER</label>
-                                                <input name="philsys" value={formData.personalInfo.philsys} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" />
+                                                <input name="philsys" value={formData.personalInfo.philsys || ''} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" />
                                             </div>
                                         </div>
                                     </section>
@@ -582,10 +582,10 @@ export default function AddEmployeePdsModal({ isOpen, onClose }: AddEmployeePdsM
                                         <div className="bg-slate-50/50 p-8 rounded-[2rem] border border-slate-100 space-y-6">
                                             <h4 className="text-[11px] font-black text-slate-800 uppercase tracking-widest pl-1">Residential Address</h4>
                                             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                                <div className="space-y-1.5"><label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">House/Lot No.</label><input name="resHouseNo" value={formData.personalInfo.resHouseNo} onChange={handlePersonalInfoChange} className="w-full bg-white border-slate-200 rounded-xl py-2 px-3 text-sm outline-none focus:border-blue-300" /></div>
-                                                <div className="space-y-1.5"><label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">Street</label><input name="resStreet" value={formData.personalInfo.resStreet} onChange={handlePersonalInfoChange} className="w-full bg-white border-slate-200 rounded-xl py-2 px-3 text-sm outline-none focus:border-blue-300" /></div>
-                                                <div className="space-y-1.5"><label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">Subdivision</label><input name="resSubdivision" value={formData.personalInfo.resSubdivision} onChange={handlePersonalInfoChange} className="w-full bg-white border-slate-200 rounded-xl py-2 px-3 text-sm outline-none focus:border-blue-300" /></div>
-                                                <div className="space-y-1.5"><label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">Barangay</label><input name="resBarangay" value={formData.personalInfo.resBarangay} onChange={handlePersonalInfoChange} className="w-full bg-white border-slate-200 rounded-xl py-2 px-3 text-sm outline-none focus:border-blue-300" /></div>
+                                                <div className="space-y-1.5"><label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">House/Lot No.</label><input name="resHouseNo" value={formData.personalInfo.resHouseNo || ''} onChange={handlePersonalInfoChange} className="w-full bg-white border-slate-200 rounded-xl py-2 px-3 text-sm outline-none focus:border-blue-300" /></div>
+                                                <div className="space-y-1.5"><label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">Street</label><input name="resStreet" value={formData.personalInfo.resStreet || ''} onChange={handlePersonalInfoChange} className="w-full bg-white border-slate-200 rounded-xl py-2 px-3 text-sm outline-none focus:border-blue-300" /></div>
+                                                <div className="space-y-1.5"><label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">Subdivision</label><input name="resSubdivision" value={formData.personalInfo.resSubdivision || ''} onChange={handlePersonalInfoChange} className="w-full bg-white border-slate-200 rounded-xl py-2 px-3 text-sm outline-none focus:border-blue-300" /></div>
+                                                <div className="space-y-1.5"><label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">Barangay</label><input name="resBarangay" value={formData.personalInfo.resBarangay || ''} onChange={handlePersonalInfoChange} className="w-full bg-white border-slate-200 rounded-xl py-2 px-3 text-sm outline-none focus:border-blue-300" /></div>
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                                 <PdsSelect label="CITY/MUNICIPALITY" name="resCity" value={formData.personalInfo.resCity} options={dropVals.cities} onChange={updatePersonalInfoValue} className="bg-white" />
@@ -618,10 +618,10 @@ export default function AddEmployeePdsModal({ isOpen, onClose }: AddEmployeePdsM
                                                 </button>
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                                <div className="space-y-1.5"><label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">House/Lot No.</label><input name="permHouseNo" value={formData.personalInfo.permHouseNo} onChange={handlePersonalInfoChange} className="w-full bg-white border-slate-200 rounded-xl py-2 px-3 text-sm outline-none focus:border-blue-300" /></div>
-                                                <div className="space-y-1.5"><label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">Street</label><input name="permStreet" value={formData.personalInfo.permStreet} onChange={handlePersonalInfoChange} className="w-full bg-white border-slate-200 rounded-xl py-2 px-3 text-sm outline-none focus:border-blue-300" /></div>
-                                                <div className="space-y-1.5"><label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">Subdivision</label><input name="permSubdivision" value={formData.personalInfo.permSubdivision} onChange={handlePersonalInfoChange} className="w-full bg-white border-slate-200 rounded-xl py-2 px-3 text-sm outline-none focus:border-blue-300" /></div>
-                                                <div className="space-y-1.5"><label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">Barangay</label><input name="permBarangay" value={formData.personalInfo.permBarangay} onChange={handlePersonalInfoChange} className="w-full bg-white border-slate-200 rounded-xl py-2 px-3 text-sm outline-none focus:border-blue-300" /></div>
+                                                <div className="space-y-1.5"><label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">House/Lot No.</label><input name="permHouseNo" value={formData.personalInfo.permHouseNo || ''} onChange={handlePersonalInfoChange} className="w-full bg-white border-slate-200 rounded-xl py-2 px-3 text-sm outline-none focus:border-blue-300" /></div>
+                                                <div className="space-y-1.5"><label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">Street</label><input name="permStreet" value={formData.personalInfo.permStreet || ''} onChange={handlePersonalInfoChange} className="w-full bg-white border-slate-200 rounded-xl py-2 px-3 text-sm outline-none focus:border-blue-300" /></div>
+                                                <div className="space-y-1.5"><label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">Subdivision</label><input name="permSubdivision" value={formData.personalInfo.permSubdivision || ''} onChange={handlePersonalInfoChange} className="w-full bg-white border-slate-200 rounded-xl py-2 px-3 text-sm outline-none focus:border-blue-300" /></div>
+                                                <div className="space-y-1.5"><label className="text-[10px] font-bold text-slate-500 ml-1 uppercase">Barangay</label><input name="permBarangay" value={formData.personalInfo.permBarangay || ''} onChange={handlePersonalInfoChange} className="w-full bg-white border-slate-200 rounded-xl py-2 px-3 text-sm outline-none focus:border-blue-300" /></div>
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                                 <PdsSelect label="CITY/MUNICIPALITY" name="permCity" value={formData.personalInfo.permCity} options={dropVals.cities} onChange={updatePersonalInfoValue} className="bg-white" />
@@ -633,15 +633,15 @@ export default function AddEmployeePdsModal({ isOpen, onClose }: AddEmployeePdsM
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                             <div className="space-y-1.5">
                                                 <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">TELEPHONE NUMBER</label>
-                                                <input name="telNo" value={formData.personalInfo.telNo} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" />
+                                                <input name="telNo" value={formData.personalInfo.telNo || ''} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" />
                                             </div>
                                             <div className="space-y-1.5">
                                                 <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">MOBILE NUMBER</label>
-                                                <input name="mobileNo" value={formData.personalInfo.mobileNo} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" />
+                                                <input name="mobileNo" value={formData.personalInfo.mobileNo || ''} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" />
                                             </div>
                                             <div className="space-y-1.5">
                                                 <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">EMAIL ADDRESS</label>
-                                                <input type="email" name="email" value={formData.personalInfo.email} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5 transition-all" placeholder="user@example.com" />
+                                                <input type="email" name="email" value={formData.personalInfo.email || ''} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5 transition-all" placeholder="user@example.com" />
                                             </div>
                                         </div>
                                     </section>
@@ -657,15 +657,15 @@ export default function AddEmployeePdsModal({ isOpen, onClose }: AddEmployeePdsM
                                             <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Spouse Information</h3>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">SURNAME</label><input name="spouseSurname" value={formData.familyBackground.spouseSurname} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">FIRST NAME</label><input name="spouseFirstName" value={formData.familyBackground.spouseFirstName} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">MIDDLE NAME</label><input name="spouseMiddleName" value={formData.familyBackground.spouseMiddleName} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">EXTENSION</label><input name="spouseExtension" value={formData.familyBackground.spouseExtension} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" placeholder="Jr., Sr." /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">SURNAME</label><input name="spouseSurname" value={formData.familyBackground.spouseSurname || ''} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">FIRST NAME</label><input name="spouseFirstName" value={formData.familyBackground.spouseFirstName || ''} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">MIDDLE NAME</label><input name="spouseMiddleName" value={formData.familyBackground.spouseMiddleName || ''} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">EXTENSION</label><input name="spouseExtension" value={formData.familyBackground.spouseExtension || ''} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" placeholder="Jr., Sr." /></div>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">OCCUPATION</label><input name="spouseOccupation" value={formData.familyBackground.spouseOccupation} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">EMPLOYER NAME</label><input name="spouseEmployer" value={formData.familyBackground.spouseEmployer} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">TELEPHONE NO.</label><input name="spouseTelNo" value={formData.familyBackground.spouseTelNo} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">OCCUPATION</label><input name="spouseOccupation" value={formData.familyBackground.spouseOccupation || ''} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">EMPLOYER NAME</label><input name="spouseEmployer" value={formData.familyBackground.spouseEmployer || ''} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">TELEPHONE NO.</label><input name="spouseTelNo" value={formData.familyBackground.spouseTelNo || ''} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
                                         </div>
                                     </section>
 
@@ -678,10 +678,10 @@ export default function AddEmployeePdsModal({ isOpen, onClose }: AddEmployeePdsM
                                             <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Father's Name</h3>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">SURNAME</label><input name="fatherSurname" value={formData.familyBackground.fatherSurname} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">FIRST NAME</label><input name="fatherFirstName" value={formData.familyBackground.fatherFirstName} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">MIDDLE NAME</label><input name="fatherMiddleName" value={formData.familyBackground.fatherMiddleName} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">EXTENSION</label><input name="fatherExtension" value={formData.familyBackground.fatherExtension} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">SURNAME</label><input name="fatherSurname" value={formData.familyBackground.fatherSurname || ''} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">FIRST NAME</label><input name="fatherFirstName" value={formData.familyBackground.fatherFirstName || ''} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">MIDDLE NAME</label><input name="fatherMiddleName" value={formData.familyBackground.fatherMiddleName || ''} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">EXTENSION</label><input name="fatherExtension" value={formData.familyBackground.fatherExtension || ''} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
                                         </div>
                                     </section>
 
@@ -694,9 +694,9 @@ export default function AddEmployeePdsModal({ isOpen, onClose }: AddEmployeePdsM
                                             <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Mother's Maiden Name</h3>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">SURNAME</label><input name="motherSurname" value={formData.familyBackground.motherSurname} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">FIRST NAME</label><input name="motherFirstName" value={formData.familyBackground.motherFirstName} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">MIDDLE NAME</label><input name="motherMiddleName" value={formData.familyBackground.motherMiddleName} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">SURNAME</label><input name="motherSurname" value={formData.familyBackground.motherSurname || ''} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">FIRST NAME</label><input name="motherFirstName" value={formData.familyBackground.motherFirstName || ''} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">MIDDLE NAME</label><input name="motherMiddleName" value={formData.familyBackground.motherMiddleName || ''} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" /></div>
                                         </div>
                                     </section>
 
@@ -718,11 +718,11 @@ export default function AddEmployeePdsModal({ isOpen, onClose }: AddEmployeePdsM
                                                 <div key={index} className="flex flex-col md:flex-row gap-4 p-5 bg-slate-50/50 rounded-2xl border border-slate-100 animate-in fade-in slide-in-from-top-2 duration-300 group relative">
                                                     <div className="flex-1 space-y-1.5 font-semibold">
                                                         <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Full name of child</label>
-                                                        <input value={child.name} onChange={(e) => updateChild(index, 'name', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:border-blue-300 transition-all shadow-sm" placeholder="John Doe Jr." />
+                                                        <input value={child.name || ''} onChange={(e) => updateChild(index, 'name', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:border-blue-300 transition-all shadow-sm" placeholder="John Doe Jr." />
                                                     </div>
                                                     <div className="w-full md:w-48 space-y-1.5">
                                                         <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Birth date</label>
-                                                        <input type="date" value={child.birthDate} onChange={(e) => updateChild(index, 'birthDate', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:border-blue-300 transition-all shadow-sm" />
+                                                        <input type="date" value={child.birthDate || ''} onChange={(e) => updateChild(index, 'birthDate', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:border-blue-300 transition-all shadow-sm" />
                                                     </div>
                                                     <button onClick={() => removeChild(index)} className="absolute top-2 right-2 md:relative md:top-0 md:right-0 p-2.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all group-hover:scale-105 md:self-end">
                                                         <Trash2 size={18} />
@@ -814,7 +814,7 @@ export default function AddEmployeePdsModal({ isOpen, onClose }: AddEmployeePdsM
                                                     />
                                                     <div className="space-y-1.5">
                                                         <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">YEAR GRADUATED</label>
-                                                        <input value={edu.yearGraduated} onChange={(e) => updateEducationValue(index, 'yearGraduated', e.target.value)} placeholder="YYYY" className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-3 text-sm outline-none focus:border-blue-400" />
+                                                        <input value={edu.yearGraduated || ''} onChange={(e) => updateEducationValue(index, 'yearGraduated', e.target.value)} placeholder="YYYY" className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-3 text-sm outline-none focus:border-blue-400" />
                                                     </div>
                                                     <PdsSelect 
                                                         label="ACADEMIC HONORS" 
@@ -857,17 +857,17 @@ export default function AddEmployeePdsModal({ isOpen, onClose }: AddEmployeePdsM
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                                     <div className="space-y-1.5">
                                                         <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">ELIGIBILITY TYPE</label>
-                                                        <input value={elig.type} onChange={(e) => updateEligibility(index, 'type', e.target.value)} placeholder="e.g. RA 1080, BOARD, BAR" className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-emerald-600/5" />
+                                                        <input value={elig.type || ''} onChange={(e) => updateEligibility(index, 'type', e.target.value)} placeholder="e.g. RA 1080, BOARD, BAR" className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-emerald-600/5" />
                                                     </div>
                                                     <div className="space-y-1.5">
                                                         <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">RATING (IF APPLICABLE)</label>
-                                                        <input value={elig.rating} onChange={(e) => updateEligibility(index, 'rating', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-emerald-600/5 font-mono" />
+                                                        <input value={elig.rating || ''} onChange={(e) => updateEligibility(index, 'rating', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-emerald-600/5 font-mono" />
                                                     </div>
                                                 </div>
                                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase tracking-tighter">DATE OF EXAM</label><input type="date" value={elig.date} onChange={(e) => updateEligibility(index, 'date', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" /></div>
-                                                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase tracking-tighter">LICENSE NUMBER</label><input value={elig.licenseNumber} onChange={(e) => updateEligibility(index, 'licenseNumber', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none font-mono tracking-widest" /></div>
-                                                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase tracking-tighter">VALID UNTIL</label><input type="date" value={elig.licenseValidUntil} onChange={(e) => updateEligibility(index, 'licenseValidUntil', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" /></div>
+                                                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase tracking-tighter">DATE OF EXAM</label><input type="date" value={elig.date || ''} onChange={(e) => updateEligibility(index, 'date', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" /></div>
+                                                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase tracking-tighter">LICENSE NUMBER</label><input value={elig.licenseNumber || ''} onChange={(e) => updateEligibility(index, 'licenseNumber', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none font-mono tracking-widest" /></div>
+                                                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase tracking-tighter">VALID UNTIL</label><input type="date" value={elig.licenseValidUntil || ''} onChange={(e) => updateEligibility(index, 'licenseValidUntil', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" /></div>
                                                 </div>
                                             </div>
                                         ))}

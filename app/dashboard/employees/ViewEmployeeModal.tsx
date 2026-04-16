@@ -226,11 +226,11 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
                                         <div className="space-y-4 px-1">
                                             <div className="p-5 bg-amber-50/30 rounded-3xl border border-amber-50">
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Annual (Authorized)</p>
-                                                <p className="text-xl font-black text-slate-800">{employee.annual_salary_authorized ? formatCurrency(employee.annual_salary_authorized) : '₱ 0.00'}</p>
+                                                <p className="text-xl font-black text-slate-800">{employee.authorized_salary ? formatCurrency(employee.authorized_salary) : '₱ 0.00'}</p>
                                             </div>
                                             <div className="p-5 bg-emerald-50/30 rounded-3xl border border-emerald-50">
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Annual (Actual)</p>
-                                                <p className="text-xl font-black text-emerald-700">{employee.annual_salary_actual ? formatCurrency(employee.annual_salary_actual) : '₱ 0.00'}</p>
+                                                <p className="text-xl font-black text-emerald-700">{employee.actual_salary ? formatCurrency(employee.actual_salary) : '₱ 0.00'}</p>
                                             </div>
                                         </div>
                                     </div>

@@ -52,8 +52,8 @@ export async function createEmployee(formData: FormData) {
         item_number: formData.get('itemNumber') as string,
         salary_grade: formData.get('salaryGrade') ? parseInt(formData.get('salaryGrade') as string) : null,
         step: formData.get('step') ? parseInt(formData.get('step') as string) : null,
-        annual_salary_authorized: formData.get('salaryAuthorized') ? parseFloat(formData.get('salaryAuthorized') as string) : null,
-        annual_salary_actual: formData.get('salaryActual') ? parseFloat(formData.get('salaryActual') as string) : null,
+        authorized_salary: formData.get('salaryAuthorized') ? parseFloat(formData.get('salaryAuthorized') as string) : null,
+        actual_salary: formData.get('salaryActual') ? parseFloat(formData.get('salaryActual') as string) : null,
         license_expiration_date: formData.get('licenseExpirationDate') as string || null,
 
         area_code: formData.get('areaCode') as string,
@@ -122,8 +122,8 @@ export async function updateEmployee(id: string, formData: FormData) {
         item_number: formData.get('itemNumber') as string,
         salary_grade: formData.get('salaryGrade') ? parseInt(formData.get('salaryGrade') as string) : null,
         step: formData.get('step') ? parseInt(formData.get('step') as string) : null,
-        annual_salary_authorized: formData.get('salaryAuthorized') ? parseFloat(formData.get('salaryAuthorized') as string) : null,
-        annual_salary_actual: formData.get('salaryActual') ? parseFloat(formData.get('salaryActual') as string) : null,
+        authorized_salary: formData.get('salaryAuthorized') ? parseFloat(formData.get('salaryAuthorized') as string) : null,
+        actual_salary: formData.get('salaryActual') ? parseFloat(formData.get('salaryActual') as string) : null,
         license_expiration_date: formData.get('licenseExpirationDate') as string || null,
 
         area_code: formData.get('areaCode') as string,
@@ -166,32 +166,180 @@ export async function deleteEmployee(id: string) {
 export async function getVacantPositions() {
     const supabase = await createClient();
 
-    // 1. Get all item_numbers currently held by active employees
-    const { data: occupiedItems } = await supabase
+    // 1. Get all position_ids currently held by employees
+    const { data: occupied } = await supabase
         .from('employees')
-        .select('item_number')
-        .is('resigned_date', null)
-        .is('retirement_date', null)
-        .eq('is_deceased', false);
+        .select('position_id')
+        .not('position_id', 'is', null);
 
-    const occupiedList = occupiedItems?.map(e => e.item_number).filter(Boolean) || [];
+    const occupiedIds = occupied?.map(e => (e as any).position_id).filter(Boolean) || [];
 
-    // 2. Fetch positions that are active and not in the occupied list
-    let query = supabase
+    // 2. Fetch positions that are active
+    const { data: positions, error } = await supabase
         .from('positions')
-        .select('*')
-        .eq('is_active', true)
-        .order('item_number');
+        .select(`
+            id,
+            item_number,
+            title,
+            classification,
+            level,
+            area_code,
+            area_type,
+            is_active,
+            departments(name),
+            salary_grades(grade, step, salary)
+        `)
+        .eq('is_active', true);
 
-    if (occupiedList.length > 0) {
-        // Construct the in filter string correctly with quotes for item numbers
-        const inFilter = `(${occupiedList.map(item => `"${item}"`).join(',')})`;
-        query = query.not('item_number', 'in', inFilter);
+    if (error) {
+        console.error('Error fetching vacant positions:', error);
+        return [];
     }
 
-    const { data, error } = await query;
-    if (error) throw new Error(error.message);
-    return data;
+    // 3. Filter out occupied ones in memory
+    const vacant = positions?.filter(pos => !occupiedIds.includes(pos.id)) || [];
+
+    // 4. Map back to UI structure
+    return vacant.map(pos => ({
+        id: pos.id,
+        item_number: pos.item_number,
+        position_title: pos.title,
+        classification: pos.classification,
+        level: pos.level,
+        area_code: pos.area_code,
+        area_type: pos.area_type,
+        is_active: pos.is_active,
+        department: (pos.departments as any)?.name || '',
+        salary_grade: (pos.salary_grades as any)?.grade || null,
+        step: (pos.salary_grades as any)?.step || null,
+        annual_salary_authorized: (pos.salary_grades as any)?.salary || null
+    }));
+}
+
+/**
+ * Ensures a department exists and Returns its UUID ID.
+ */
+async function ensureDepartmentExists(name: string | null) {
+    if (!name || name.trim() === '') return null;
+    const trimmedName = name.trim();
+    const supabase = await createClient();
+    
+    // Check if it exists first (to handle possible CASE differences)
+    const { data: existing } = await supabase
+        .from('departments')
+        .select('id')
+        .ilike('name', trimmedName)
+        .maybeSingle();
+        
+    if (existing) return existing.id;
+    
+    // If not found by ILIKE, try to UPSERT it
+    // This handles race conditions and unique constraint conflicts
+    const { data: upserted, error: upsertError } = await supabase
+        .from('departments')
+        .upsert({ name: trimmedName }, { onConflict: 'name' })
+        .select('id')
+        .single();
+            
+    if (upsertError) {
+        console.error('CRITICAL: Department synchronization failed:', upsertError.message);
+        throw new Error(`Department data sync failed: ${upsertError.message}`);
+    }
+    
+    return upserted?.id || null;
+}
+
+async function getDepartmentIdByName(name: string | null) {
+    if (!name) return null;
+    const trimmedName = name.trim();
+    const supabase = await createClient();
+    
+    // Perform a case-insensitive check
+    const { data, error } = await supabase
+        .from('departments')
+        .select('id')
+        .ilike('name', trimmedName)
+        .maybeSingle();
+        
+    if (error) {
+        console.error('Error looking up department ID:', error.message);
+        return null;
+    }
+    
+    return data?.id || null;
+}
+
+/**
+ * Ensures a salary grade exists and has the correct salary value.
+ */
+async function ensureSalaryGradeExists(grade: number, step: number, salary: number | null) {
+    if (!grade) return null;
+    const supabase = await createClient();
+    
+    const { data, error } = await supabase
+        .from('salary_grades')
+        .upsert({
+            grade,
+            step,
+            salary: salary || 0
+        }, { onConflict: 'grade,step' })
+        .select('id')
+        .single();
+        
+    if (error) {
+        console.error('Error upserting salary grade:', error.message);
+        return null;
+    }
+    
+    return data.id;
+}
+
+/**
+ * Redone Summary Logic: Positions Sync
+ */
+async function ensurePositionExists(itemNumber: string | null, details: any, resolvedDepartmentId?: string | null) {
+    if (!itemNumber) return null;
+    const supabase = await createClient();
+    
+    // 1. Resolve Foreign Keys
+    // If we already resolved the deptId in the main loop, use it
+    const departmentId = resolvedDepartmentId !== undefined 
+        ? resolvedDepartmentId 
+        : await getDepartmentIdByName(details.department);
+    
+    if (!departmentId && details.department) {
+        console.warn(`Warning: Could not resolve department ID for "${details.department}"`);
+    }
+
+    const sgId = await ensureSalaryGradeExists(
+        parseInt(details.salaryGrade || '0'), 
+        parseInt(details.step || '1'),
+        details.salaryAuthorized ? parseFloat(details.salaryAuthorized) : null
+    );
+    
+    // 2. Upsert Position Details
+    const { data: pos, error: posError } = await supabase
+        .from('positions')
+        .upsert({
+            item_number: itemNumber,
+            title: details.positionTitle,
+            classification: details.classification,
+            department_id: departmentId,
+            salary_grade_id: sgId,
+            level: details.level,
+            area_code: details.areaCode,
+            area_type: details.areaType,
+            is_active: true
+        }, { onConflict: 'item_number' })
+        .select('id')
+        .single();
+            
+    if (posError) {
+        console.error('Core Position Sync Error:', posError.message);
+        throw new Error(`Position synchronization failed: ${posError.message}`);
+    }
+    
+    return pos.id;
 }
 
 export async function getUniqueDepartments() {
@@ -398,11 +546,21 @@ export async function getEmployeeFullProfile(employeeUuid: string) {
 
     const { data: employee, error: empError } = await supabase
         .from('employees')
-        .select('*')
+        .select(`
+            *,
+            positions (
+                *,
+                departments(name),
+                salary_grades(grade, step, salary)
+            )
+        `)
         .eq('id', employeeUuid)
         .single();
 
-    if (empError) throw new Error(empError.message);
+    if (empError) {
+        console.error('Error fetching employee profile:', empError.message);
+        throw new Error(empError.message);
+    }
 
     const { data: pds } = await supabase.from('employee_pds').select('*').eq('employee_id', employeeUuid).single();
     const { data: family } = await supabase.from('employee_family').select('*').eq('employee_id', employeeUuid).single();
@@ -410,8 +568,22 @@ export async function getEmployeeFullProfile(employeeUuid: string) {
     const { data: education } = await supabase.from('employee_education').select('*').eq('employee_id', employeeUuid).order('year_graduated', { ascending: false });
     const { data: eligibility } = await supabase.from('employee_eligibility').select('*').eq('employee_id', employeeUuid);
 
+    const pos = (employee as any)?.positions || {};
+
     return {
         ...employee,
+        // Map nested position data back to the flat structure the UI expects
+        item_number: pos.item_number || '',
+        position_title: pos.title || '',
+        classification: pos.classification || 'Teaching',
+        department: pos.departments?.name || '',
+        level: pos.level || '',
+        area_code: pos.area_code || '',
+        area_type: pos.area_type || '',
+        salary_grade: pos.salary_grades?.grade || null,
+        step: pos.salary_grades?.step || null,
+        authorized_salary: pos.salary_grades?.salary || null,
+        
         pds,
         family,
         children: children || [],
@@ -480,7 +652,16 @@ export async function updateEmployeeFullProfile(employeeUuid: string, payload: a
     const toNull = (val: any) => val === '' ? null : val;
 
     try {
-        // 1. Update Core Employee Record
+        // 0. Ensure department exists and capture its unique ID
+        let resolvedDeptId = null;
+        if (payload.summary.department) {
+            resolvedDeptId = await ensureDepartmentExists(payload.summary.department);
+        }
+
+        // 0.1 Ensure position exists and pass the already-resolved department ID
+        const positionId = await ensurePositionExists(payload.summary.itemNumber, payload.summary, resolvedDeptId);
+
+        // 1. Update Core Employee Record (Redone Mapping)
         const { error: empError } = await supabase
             .from('employees')
             .update({
@@ -488,29 +669,22 @@ export async function updateEmployeeFullProfile(employeeUuid: string, payload: a
                 first_name: payload.personalInfo.firstName,
                 middle_name: toNull(payload.personalInfo.middleName),
                 last_name: payload.personalInfo.lastName,
-                sex: toNull(payload.personalInfo.gender),
-                birthdate: toNull(payload.personalInfo.birthDate),
+                birth_date: toNull(payload.personalInfo.birthDate),
+                gender: toNull(payload.personalInfo.gender),
                 tin: toNull(payload.personalInfo.tin),
                 civil_service_eligibility: toNull(payload.personalInfo.eligibility),
                 license_expiration_date: toNull(payload.personalInfo.licenseExpirationDate),
                 is_deceased: payload.personalInfo.isDeceased === 'true',
                 
-                position_title: toNull(payload.summary.positionTitle),
-                classification: toNull(payload.summary.classification),
-                department: toNull(payload.summary.department),
+                // Link to Position
+                position_id: positionId,
+                
+                // Summary/Financial Data (Employees Table)
                 status: toNull(payload.summary.status),
-                level: toNull(payload.summary.level),
-                
-                item_number: toNull(payload.summary.itemNumber) || null,
-                salary_grade: payload.summary.salaryGrade ? parseInt(payload.summary.salaryGrade) : null,
-                step: payload.summary.step ? parseInt(payload.summary.step) : null,
-                annual_salary_authorized: payload.summary.salaryAuthorized ? parseFloat(payload.summary.salaryAuthorized) : null,
-                annual_salary_actual: payload.summary.salaryActual ? parseFloat(payload.summary.salaryActual) : null,
-                
-                area_code: toNull(payload.summary.areaCode),
-                area_type: toNull(payload.summary.areaType),
+                actual_salary: payload.summary.salaryActual ? parseFloat(payload.summary.salaryActual) : null,
                 ppa_attribution: toNull(payload.summary.ppaAttribution),
                 
+                // Service Chronology (Employees Table)
                 original_appointment_date: toNull(payload.summary.appointmentDate),
                 last_promotion_date: toNull(payload.summary.promotionDate),
                 retirement_date: toNull(payload.summary.retirementDate),

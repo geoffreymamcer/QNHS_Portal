@@ -31,7 +31,7 @@ export async function getWorkforceSummary() {
     const averageAge = total > 0 ? (totalAge / employees.filter(e => e.birthdate).length).toFixed(1) : 0;
 
     // Total Salary Cost
-    const totalSalaryCost = employees.reduce((sum, e) => sum + (Number(e.annual_salary_actual) || 0), 0);
+    const totalSalaryCost = employees.reduce((sum, e) => sum + (Number(e.actual_salary) || 0), 0);
 
     return {
         total,
@@ -130,7 +130,7 @@ export async function getSalaryExpenditure() {
 
     const { data: employees, error } = await supabase
         .from('employees')
-        .select('department, annual_salary_authorized, annual_salary_actual');
+        .select('department, authorized_salary, actual_salary');
 
     if (error) throw new Error(error.message);
 
@@ -141,8 +141,8 @@ export async function getSalaryExpenditure() {
         if (!expenditure[dept]) {
             expenditure[dept] = { authorized: 0, actual: 0 };
         }
-        expenditure[dept].authorized += Number(emp.annual_salary_authorized) || 0;
-        expenditure[dept].actual += Number(emp.annual_salary_actual) || 0;
+        expenditure[dept].authorized += Number(emp.authorized_salary) || 0;
+        expenditure[dept].actual += Number(emp.actual_salary) || 0;
     });
 
     return Object.entries(expenditure)

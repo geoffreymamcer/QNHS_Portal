@@ -5,12 +5,14 @@ import { X, Upload, User, Briefcase, Info, ShieldAlert, GraduationCap, Banknote,
 import { createEmployee, getVacantPositions, getUniqueDepartments } from './actions';
 
 interface Position {
+    id: string;
     item_number: string;
     position_title: string;
     classification: string;
     department: string | null;
     level: string | null;
     salary_grade: number | null;
+    step: number | null;
     annual_salary_authorized: number | null;
     area_code: string | null;
     area_type: string | null;
@@ -181,7 +183,7 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
                                     <div className="flex gap-2">
                                         <input
                                             name="itemNumber"
-                                            value={formData.itemNumber}
+                                            value={formData.itemNumber || ''}
                                             onChange={handleInputChange}
                                             placeholder="Enter Item Number"
                                             className="w-full bg-emerald-50/40 border border-emerald-100 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-emerald-600/10 outline-none"
@@ -224,8 +226,8 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
                             <div className="md:col-span-2 space-y-1.5">
                                 <label className="text-xs font-bold text-slate-600 ml-1">(2) POSITION TITLE & SG</label>
                                 <div className="flex gap-2">
-                                    <input name="positionTitle" value={formData.positionTitle} readOnly={!isManualItemNumber} onChange={handleInputChange} type="text" placeholder="Title" className={`flex-1 border border-slate-200 rounded-xl py-2.5 px-4 text-sm font-medium outline-none transition-all ${isManualItemNumber ? 'bg-white focus:ring-4 focus:ring-blue-600/5' : 'bg-slate-100 text-slate-500 cursor-not-allowed'}`} />
-                                    <input name="salaryGrade" value={formData.salaryGrade} readOnly={!isManualItemNumber} onChange={handleInputChange} type="text" placeholder="SG" className={`w-20 border border-slate-200 rounded-xl py-2.5 px-4 text-sm font-bold text-center outline-none transition-all ${isManualItemNumber ? 'bg-white focus:ring-4 focus:ring-blue-600/5' : 'bg-slate-100 text-slate-500 cursor-not-allowed'}`} />
+                                    <input name="positionTitle" value={formData.positionTitle || ''} readOnly={!isManualItemNumber} onChange={handleInputChange} type="text" placeholder="Title" className={`flex-1 border border-slate-200 rounded-xl py-2.5 px-4 text-sm font-medium outline-none transition-all ${isManualItemNumber ? 'bg-white focus:ring-4 focus:ring-blue-600/5' : 'bg-slate-100 text-slate-500 cursor-not-allowed'}`} />
+                                    <input name="salaryGrade" value={formData.salaryGrade || ''} readOnly={!isManualItemNumber} onChange={handleInputChange} type="text" placeholder="SG" className={`w-20 border border-slate-200 rounded-xl py-2.5 px-4 text-sm font-bold text-center outline-none transition-all ${isManualItemNumber ? 'bg-white focus:ring-4 focus:ring-blue-600/5' : 'bg-slate-100 text-slate-500 cursor-not-allowed'}`} />
                                 </div>
                             </div>
                         </div>
@@ -234,19 +236,19 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
                                 <label className="text-xs font-bold text-slate-600 ml-1">(3) ANNUAL SALARY — AUTHORIZED</label>
                                 <div className="relative">
                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold">₱</span>
-                                    <input name="salaryAuthorized" value={formData.salaryAuthorized} onChange={handleInputChange} type="number" step="0.01" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-8 pr-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                    <input name="salaryAuthorized" value={formData.salaryAuthorized || ''} onChange={handleInputChange} type="number" step="0.01" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-8 pr-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
                                 </div>
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-600 ml-1">(4) ANNUAL SALARY — ACTUAL</label>
                                 <div className="relative">
                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold">₱</span>
-                                    <input name="salaryActual" value={formData.salaryActual} onChange={handleInputChange} type="number" step="0.01" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-8 pr-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                    <input name="salaryActual" value={formData.salaryActual || ''} onChange={handleInputChange} type="number" step="0.01" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-8 pr-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
                                 </div>
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-600 ml-1">(5) STEP</label>
-                                <input name="step" value={formData.step} onChange={handleInputChange} type="number" min="1" max="8" placeholder="1" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                <input name="step" value={formData.step || ''} onChange={handleInputChange} type="number" min="1" max="8" placeholder="1" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
                             </div>
                         </div>
                     </div>
@@ -262,18 +264,18 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-600 ml-1">(6) AREA CODE</label>
-                                <input name="areaCode" value={formData.areaCode} onChange={handleInputChange} type="text" placeholder="Code" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                <input name="areaCode" value={formData.areaCode || ''} onChange={handleInputChange} type="text" placeholder="Code" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-600 ml-1">(7) AREA TYPE</label>
-                                <input name="areaType" value={formData.areaType} onChange={handleInputChange} type="text" placeholder="Type" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                <input name="areaType" value={formData.areaType || ''} onChange={handleInputChange} type="text" placeholder="Type" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-600 ml-1">(8) LEVEL</label>
                                 <input
                                     type='text'
                                     name="level"
-                                    value={formData.level}
+                                    value={formData.level || ''}
                                     onChange={handleInputChange}
                                     required
                                     className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none"
@@ -281,7 +283,7 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-600 ml-1">(9) P/P/A ATTRIBUTION</label>
-                                <input name="ppaAttribution" value={formData.ppaAttribution} onChange={handleInputChange} type="text" placeholder="Program Attribution" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                <input name="ppaAttribution" value={formData.ppaAttribution || ''} onChange={handleInputChange} type="text" placeholder="Program Attribution" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
                             </div>
                         </div>
                     </div>
@@ -321,15 +323,15 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-600 ml-1">(10) NAME OF INCUMBENT</label>
                                 <div className="grid grid-cols-3 gap-4">
-                                    <input name="firstName" value={formData.firstName} onChange={handleInputChange} required type="text" placeholder="First Name" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
-                                    <input name="middleName" value={formData.middleName} onChange={handleInputChange} type="text" placeholder="Middle Name" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
-                                    <input name="lastName" value={formData.lastName} onChange={handleInputChange} required type="text" placeholder="Last Name" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                    <input name="firstName" value={formData.firstName || ''} onChange={handleInputChange} required type="text" placeholder="First Name" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                    <input name="middleName" value={formData.middleName || ''} onChange={handleInputChange} type="text" placeholder="Middle Name" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                    <input name="lastName" value={formData.lastName || ''} onChange={handleInputChange} required type="text" placeholder="Last Name" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
                                 </div>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-bold text-slate-600 ml-1">(11) SEX</label>
-                                    <select name="gender" value={formData.gender} onChange={handleInputChange} required className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none">
+                                    <select name="gender" value={formData.gender || ''} onChange={handleInputChange} required className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none">
                                         <option value="">Select Sex</option>
                                         <option value="Male">Male</option>
                                         <option value="Female">Female</option>
@@ -337,11 +339,11 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-bold text-slate-600 ml-1">(12) DATE OF BIRTH</label>
-                                    <input name="birthdate" value={formData.birthdate} onChange={handleInputChange} required type="date" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                    <input name="birthdate" value={formData.birthdate || ''} onChange={handleInputChange} required type="date" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-bold text-slate-600 ml-1">(13) TIN</label>
-                                    <input name="tin" value={formData.tin} onChange={handleInputChange} type="text" placeholder="000-000-000" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none font-mono" />
+                                    <input name="tin" value={formData.tin || ''} onChange={handleInputChange} type="text" placeholder="000-000-000" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none font-mono" />
                                 </div>
                             </div>
                         </div>
@@ -358,21 +360,21 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-600 ml-1">(14) DATE OF ORIGINAL APPOINTMENT</label>
-                                <input name="appointmentDate" value={formData.appointmentDate} onChange={handleInputChange} type="date" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                <input name="appointmentDate" value={formData.appointmentDate || ''} onChange={handleInputChange} type="date" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-600 ml-1">(15) DATE OF LAST PROMOTION</label>
-                                <input name="promotionDate" value={formData.promotionDate} onChange={handleInputChange} type="date" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                <input name="promotionDate" value={formData.promotionDate || ''} onChange={handleInputChange} type="date" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-600 ml-1">(16) STATUS</label>
                                 {isManualStatus ? (
                                     <div className="flex gap-2">
-                                        <input name="status" value={formData.status} onChange={handleInputChange} placeholder="Enter Status" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                        <input name="status" value={formData.status || ''} onChange={handleInputChange} placeholder="Enter Status" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
                                         <button type="button" onClick={() => setIsManualStatus(false)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"><X size={18} /></button>
                                     </div>
                                 ) : (
-                                    <select name="status" value={formData.status} onChange={(e) => e.target.value === 'ADD_NEW' ? setIsManualStatus(true) : handleInputChange(e)} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none">
+                                    <select name="status" value={formData.status || ''} onChange={(e) => e.target.value === 'ADD_NEW' ? setIsManualStatus(true) : handleInputChange(e)} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none">
                                         <option value="Permanent">Permanent</option>
                                         <option value="Provisional">Provisional</option>
                                         <option value="Substitute">Substitute</option>
@@ -384,7 +386,7 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-600 ml-1">(17) CIVIL SERVICE ELIGIBILITY</label>
-                                <input name="eligibility" value={formData.eligibility} onChange={handleInputChange} type="text" placeholder="e.g. RA 1080" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                <input name="eligibility" value={formData.eligibility || ''} onChange={handleInputChange} type="text" placeholder="e.g. RA 1080" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
                             </div>
                         </div>
                     </div>
@@ -402,11 +404,11 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
                                 <label className="text-xs font-bold text-slate-600 ml-1">CLASSIFICATION</label>
                                 {isManualClass ? (
                                     <div className="flex gap-2">
-                                        <input name="classification" value={formData.classification} onChange={handleInputChange} placeholder="Enter Class" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                        <input name="classification" value={formData.classification || ''} onChange={handleInputChange} placeholder="Enter Class" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
                                         <button type="button" onClick={() => setIsManualClass(false)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"><X size={18} /></button>
                                     </div>
                                 ) : (
-                                    <select name="classification" value={formData.classification} onChange={(e) => e.target.value === 'ADD_NEW' ? setIsManualClass(true) : handleInputChange(e)} required className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 outline-none">
+                                    <select name="classification" value={formData.classification || ''} onChange={(e) => e.target.value === 'ADD_NEW' ? setIsManualClass(true) : handleInputChange(e)} required className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 outline-none">
                                         <option value="Teaching">Teaching</option>
                                         <option value="Non-Teaching">Non-Teaching</option>
                                         <option value="ADD_NEW" className="font-bold text-blue-600 italic">➕ Add New Class...</option>
@@ -417,11 +419,11 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
                                 <label className="text-xs font-bold text-slate-600 ml-1">DEPARTMENT</label>
                                 {isManualDept ? (
                                     <div className="flex gap-2">
-                                        <input name="department" value={formData.department} onChange={handleInputChange} placeholder="Enter Dept" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
+                                        <input name="department" value={formData.department || ''} onChange={handleInputChange} placeholder="Enter Dept" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 transition-all outline-none" />
                                         <button type="button" onClick={() => setIsManualDept(false)} className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"><X size={18} /></button>
                                     </div>
                                 ) : (
-                                    <select name="department" value={formData.department} onChange={(e) => e.target.value === 'ADD_NEW' ? setIsManualClass(true) : handleInputChange(e)} required className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 outline-none">
+                                    <select name="department" value={formData.department || ''} onChange={(e) => e.target.value === 'ADD_NEW' ? setIsManualClass(true) : handleInputChange(e)} required className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 text-sm focus:ring-4 focus:ring-blue-600/5 outline-none">
                                         <option value="">Select Department</option>
                                         {departments.map(dept => <option key={dept} value={dept}>{dept}</option>)}
                                         <option value="ADD_NEW" className="font-bold text-blue-600 italic">➕ Add New Dept...</option>
@@ -430,7 +432,7 @@ export default function AddEmployeeModal({ isOpen, onClose }: AddEmployeeModalPr
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-600 ml-1">LICENSE EXPIRATION</label>
-                                <input name="licenseExpirationDate" value={formData.licenseExpirationDate} onChange={handleInputChange} type="date" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 outline-none" />
+                                <input name="licenseExpirationDate" value={formData.licenseExpirationDate || ''} onChange={handleInputChange} type="date" className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-sm focus:ring-4 focus:ring-blue-600/5 outline-none" />
                             </div>
                         </div>
                     </div>

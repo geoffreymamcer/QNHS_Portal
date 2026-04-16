@@ -6,12 +6,14 @@ import { updateEmployeeFullProfile, getVacantPositions, getUniqueDepartments, ge
 import { useRouter } from 'next/navigation';
 
 interface Position {
+    id: string;
     item_number: string;
     position_title: string;
     classification: string;
     department: string | null;
     level: string | null;
     salary_grade: number | null;
+    step: number | null;
     annual_salary_authorized: number | null;
     area_code: string | null;
     area_type: string | null;
@@ -220,9 +222,9 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
                     level: profile.level || 'Junior High School',
                     itemNumber: profile.item_number || '',
                     salaryGrade: profile.salary_grade?.toString() || '',
-                    step: profile.step?.toString() || '1',
-                    salaryAuthorized: profile.annual_salary_authorized?.toString() || '',
-                    salaryActual: profile.annual_salary_actual?.toString() || '',
+                    step: profile.step?.toString() || '',
+                    salaryAuthorized: profile.authorized_salary?.toString() || '',
+                    salaryActual: profile.actual_salary?.toString() || '',
                     areaCode: profile.area_code || '',
                     areaType: profile.area_type || '',
                     ppaAttribution: profile.ppa_attribution || '',
@@ -236,8 +238,8 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
                     firstName: profile.first_name || '',
                     middleName: profile.middle_name || '',
                     lastName: profile.last_name || '',
-                    birthDate: profile.birthdate || '',
-                    gender: profile.sex || '',
+                    birthDate: profile.birth_date || '', // Fixed mapping
+                    gender: profile.gender || '', // Fixed mapping
                     tin: profile.tin || '',
                     eligibility: profile.civil_service_eligibility || '',
                     licenseExpirationDate: profile.license_expiration_date || '',
@@ -262,7 +264,7 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
                     spouseOccupation: family.spouse_occupation || '', spouseEmployer: family.spouse_employer || '', spouseTelNo: family.spouse_tel_no || '',
                     fatherSurname: family.father_lastname || '', fatherFirstName: family.father_firstname || '', fatherMiddleName: family.father_middlename || '', fatherExtension: family.father_extension || '',
                     motherSurname: family.mother_maiden_lastname || '', motherFirstName: family.mother_firstname || '', motherMiddleName: family.mother_middlename || '',
-                    children: profile.children.map((c: any) => ({ name: c.child_name, birthDate: c.birth_date })) || [],
+                    children: profile.children?.map((c: any) => ({ name: c.child_name || '', birthDate: c.birth_date || '' })) || [],
                 },
                 educationalBackground: profile.education?.map((e: any) => ({
                     level: e.level || '', 
@@ -292,6 +294,27 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
     const handleSummaryChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, summary: { ...prev.summary, [name]: value } }));
+    };
+
+    const updateSummaryValue = (name: string, value: string) => {
+        setFormData(prev => {
+            const newSummary = { ...prev.summary, [name]: value };
+            
+            // If we selected a vacant item number, auto-fill the other fields
+            if (name === 'itemNumber') {
+                const position = vacantPositions.find(p => p.item_number === value);
+                if (position) {
+                    newSummary.positionTitle = position.position_title || newSummary.positionTitle;
+                    newSummary.classification = position.classification || newSummary.classification;
+                    newSummary.department = position.department || newSummary.department;
+                    newSummary.salaryGrade = position.salary_grade?.toString() || newSummary.salaryGrade;
+                    newSummary.areaCode = position.area_code || newSummary.areaCode;
+                    newSummary.areaType = position.area_type || newSummary.areaType;
+                }
+            }
+            
+            return { ...prev, summary: newSummary };
+        });
     };
 
     const handlePersonalInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -400,12 +423,19 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto px-10 pb-10 custom-scrollbar relative">
-                    {isFullProfileLoading ? (
-                        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-30 flex flex-col items-center justify-center gap-4">
-                            <div className="h-10 w-10 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin" />
-                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest animate-pulse">Synchronizing Record...</p>
+                    {(isFullProfileLoading || isLoading) && (
+                        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-[100] flex flex-col items-center justify-center gap-4">
+                            <div className="h-12 w-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin" />
+                            <div className="flex flex-col items-center">
+                                <p className="text-sm font-black text-slate-800 uppercase tracking-widest animate-pulse">
+                                    {isLoading ? 'Synchronizing Data...' : 'Calibrating Record...'}
+                                </p>
+                                <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-tight">Please do not refresh the page</p>
+                            </div>
                         </div>
-                    ) : isSuccess ? (
+                    )}
+                    
+                    {isSuccess ? (
                         <div className="h-full flex flex-col items-center justify-center animate-in zoom-in-95 duration-500">
                             <div className="h-24 w-24 bg-emerald-100 text-emerald-600 rounded-[2rem] flex items-center justify-center shadow-2xl shadow-emerald-500/20 mb-6">
                                 <CheckCircle2 size={48} />
@@ -427,27 +457,59 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
                                     <section className="space-y-8">
                                         <div className="flex items-center gap-3"><div className="h-1.5 w-8 bg-blue-600 rounded-full" /><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Assignment & Basic Data</h4></div>
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                            <div className="space-y-1.5 md:col-span-1"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Position Title</label><input name="positionTitle" value={formData.summary.positionTitle} onChange={handleSummaryChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm outline-none" /></div>
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Classification</label><select name="classification" value={formData.summary.classification} onChange={handleSummaryChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm outline-none"><option value="Teaching">Teaching</option><option value="Non-Teaching">Non-Teaching</option></select></div>
-                                            <div className="space-y-1.5">
-                                                <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Department</label>
-                                                <select name="department" value={formData.summary.department} onChange={handleSummaryChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm outline-none">
-                                                    <option value="">Select Department</option>
-                                                    {departments.map(d => <option key={d} value={d}>{d}</option>)}
-                                                </select>
-                                            </div>
+                                            <div className="space-y-1.5 md:col-span-1"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Position Title</label><input name="positionTitle" value={formData.summary.positionTitle || ''} onChange={handleSummaryChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm outline-none" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Classification</label><select name="classification" value={formData.summary.classification || 'Teaching'} onChange={handleSummaryChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm outline-none"><option value="Teaching">Teaching</option><option value="Non-Teaching">Non-Teaching</option></select></div>
+                                            <PdsSelect 
+                                                label="Department" 
+                                                name="department" 
+                                                value={formData.summary.department} 
+                                                options={departments} 
+                                                onChange={updateSummaryValue} 
+                                            />
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                            <div className="space-y-1.5 md:col-span-2">
-                                                <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Item Number (Select Vacant)</label>
-                                                <select name="itemNumber" value={formData.summary.itemNumber} onChange={handleSummaryChange} className="w-full bg-emerald-50/50 border border-emerald-100 rounded-xl py-3 px-4 text-sm outline-none text-emerald-800 font-bold">
-                                                    <option value={employee.item_number}>{employee.position_title} (Current)</option>
-                                                    <option value="">— Transfer to Vacant —</option>
-                                                    {vacantPositions.map(p => <option key={p.item_number} value={p.item_number}>{p.position_title} | SG{p.salary_grade} ({p.item_number})</option>)}
-                                                </select>
+                                            <PdsSelect 
+                                                label="Item Number (Vacant)" 
+                                                name="itemNumber" 
+                                                value={formData.summary.itemNumber} 
+                                                options={vacantPositions.map(p => p.item_number)} 
+                                                onChange={updateSummaryValue}
+                                                className="md:col-span-2"
+                                                placeholder={employee.item_number ? `Current: ${employee.item_number}` : "Select Item"}
+                                            />
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Salary Grade</label><input type="number" name="salaryGrade" value={formData.summary.salaryGrade || ''} onChange={handleSummaryChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm outline-none" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Step</label><input type="number" name="step" value={formData.summary.step || ''} onChange={handleSummaryChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm outline-none" /></div>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-blue-50/30 p-6 rounded-3xl border border-blue-100/50">
+                                            <div className="space-y-2">
+                                                <label className="text-[11px] font-black text-blue-600 ml-1 uppercase tracking-wider">Annual Salary (Authorized)</label>
+                                                <div className="relative">
+                                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-600 font-bold text-sm">₱</div>
+                                                    <input 
+                                                        type="number" 
+                                                        name="salaryAuthorized" 
+                                                        value={formData.summary.salaryAuthorized || ''} 
+                                                        onChange={handleSummaryChange} 
+                                                        placeholder="0.00"
+                                                        className="w-full bg-white border border-blue-100 rounded-2xl py-3.5 pl-9 pr-4 text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-blue-600/5 focus:border-blue-300 transition-all" 
+                                                    />
+                                                </div>
                                             </div>
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Salary Grade</label><input type="number" name="salaryGrade" value={formData.summary.salaryGrade} onChange={handleSummaryChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm outline-none" /></div>
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Step</label><input type="number" name="step" value={formData.summary.step} onChange={handleSummaryChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm outline-none" /></div>
+                                            <div className="space-y-2">
+                                                <label className="text-[11px] font-black text-emerald-600 ml-1 uppercase tracking-wider">Annual Salary (Actual)</label>
+                                                <div className="relative">
+                                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600 font-bold text-sm">₱</div>
+                                                    <input 
+                                                        type="number" 
+                                                        name="salaryActual" 
+                                                        value={formData.summary.salaryActual || ''} 
+                                                        onChange={handleSummaryChange} 
+                                                        placeholder="0.00"
+                                                        className="w-full bg-white border border-emerald-100 rounded-2xl py-3.5 pl-9 pr-4 text-sm font-bold text-slate-700 outline-none focus:ring-4 focus:ring-emerald-600/5 focus:border-emerald-300 transition-all" 
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
                                     </section>
 
@@ -456,15 +518,15 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
                                     <section className="space-y-8">
                                         <div className="flex items-center gap-3"><div className="h-1.5 w-8 bg-emerald-600 rounded-full" /><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Service Chronology & Attribution</h4></div>
                                         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Date Appointed</label><input type="date" name="appointmentDate" value={formData.summary.appointmentDate} onChange={handleSummaryChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm outline-none" /></div>
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Last Promotion</label><input type="date" name="promotionDate" value={formData.summary.promotionDate} onChange={handleSummaryChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm outline-none" /></div>
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Retirement</label><input type="date" name="retirementDate" value={formData.summary.retirementDate} onChange={handleSummaryChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm outline-none" /></div>
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase text-red-700">Resigned On</label><input type="date" name="resignedDate" value={formData.summary.resignedDate} onChange={handleSummaryChange} className="w-full bg-red-50/50 border border-red-100 rounded-xl py-3 px-4 text-sm outline-none" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Date Appointed</label><input type="date" name="appointmentDate" value={formData.summary.appointmentDate || ''} onChange={handleSummaryChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm outline-none" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Last Promotion</label><input type="date" name="promotionDate" value={formData.summary.promotionDate || ''} onChange={handleSummaryChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm outline-none" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Retirement</label><input type="date" name="retirementDate" value={formData.summary.retirementDate || ''} onChange={handleSummaryChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm outline-none" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase text-red-700">Resigned On</label><input type="date" name="resignedDate" value={formData.summary.resignedDate || ''} onChange={handleSummaryChange} className="w-full bg-red-50/50 border border-red-100 rounded-xl py-3 px-4 text-sm outline-none" /></div>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Area Code</label><input name="areaCode" value={formData.summary.areaCode} onChange={handleSummaryChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm outline-none" /></div>
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Area Type</label><input name="areaType" value={formData.summary.areaType} onChange={handleSummaryChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm outline-none" /></div>
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">P/P/A Attribution</label><input name="ppaAttribution" value={formData.summary.ppaAttribution} onChange={handleSummaryChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm outline-none" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Area Code</label><input name="areaCode" value={formData.summary.areaCode || ''} onChange={handleSummaryChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm outline-none" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Area Type</label><input name="areaType" value={formData.summary.areaType || ''} onChange={handleSummaryChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm outline-none" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">P/P/A Attribution</label><input name="ppaAttribution" value={formData.summary.ppaAttribution || ''} onChange={handleSummaryChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm outline-none" /></div>
                                         </div>
                                     </section>
                                 </div>
@@ -475,15 +537,15 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
                                     <section className="space-y-8">
                                         <div className="flex items-center gap-3"><div className="h-1.5 w-8 bg-blue-600 rounded-full" /><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Detailed Personal Information</h4></div>
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Surname</label><input name="lastName" value={formData.personalInfo.lastName} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">First Name</label><input name="firstName" value={formData.personalInfo.firstName} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Middle Name</label><input name="middleName" value={formData.personalInfo.middleName} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Surname</label><input name="lastName" value={formData.personalInfo.lastName || ''} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">First Name</label><input name="firstName" value={formData.personalInfo.firstName || ''} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Middle Name</label><input name="middleName" value={formData.personalInfo.middleName || ''} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase tracking-tighter">Place of Birth</label><input name="placeOfBirth" value={formData.personalInfo.placeOfBirth} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase tracking-tighter">Place of Birth</label><input name="placeOfBirth" value={formData.personalInfo.placeOfBirth || ''} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
                                             <div className="space-y-1.5">
                                                 <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase tracking-tighter">Civil Status</label>
-                                                <select name="civilStatus" value={formData.personalInfo.civilStatus} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm">
+                                                <select name="civilStatus" value={formData.personalInfo.civilStatus || ''} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm">
                                                     <option value="Single">Single</option><option value="Married">Married</option><option value="Widowed">Widowed</option><option value="Separated">Separated</option>
                                                 </select>
                                             </div>
@@ -497,18 +559,18 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
                                     <section className="space-y-8">
                                         <div className="flex items-center gap-3"><div className="h-1.5 w-8 bg-amber-500 rounded-full" /><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">ID Registration & Addresses</h4></div>
                                         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">TIN</label><input name="tin" value={formData.personalInfo.tin} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">PhilHealth</label><input name="philhealth" value={formData.personalInfo.philhealth} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Pag-Ibig</label><input name="pagibig" value={formData.personalInfo.pagibig} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">UMID</label><input name="umid" value={formData.personalInfo.umid} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">TIN</label><input name="tin" value={formData.personalInfo.tin || ''} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">PhilHealth</label><input name="philhealth" value={formData.personalInfo.philhealth || ''} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Pag-Ibig</label><input name="pagibig" value={formData.personalInfo.pagibig || ''} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">UMID</label><input name="umid" value={formData.personalInfo.umid || ''} onChange={handlePersonalInfoChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
                                         </div>
                                         <div className="bg-slate-50/50 p-8 rounded-[2rem] border border-slate-100 space-y-6">
                                             <h5 className="text-[10px] font-black uppercase text-slate-700 tracking-widest pl-1">Residential Address</h5>
                                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                                <input placeholder="Hse/Lot" name="resHouseNo" value={formData.personalInfo.resHouseNo} onChange={handlePersonalInfoChange} className="bg-white border-slate-200 rounded-xl py-2 px-3 text-sm" />
-                                                <input placeholder="Street" name="resStreet" value={formData.personalInfo.resStreet} onChange={handlePersonalInfoChange} className="bg-white border-slate-200 rounded-xl py-2 px-3 text-sm" />
-                                                <input placeholder="Subdivision" name="resSubdivision" value={formData.personalInfo.resSubdivision} onChange={handlePersonalInfoChange} className="bg-white border-slate-200 rounded-xl py-2 px-3 text-sm" />
-                                                <input placeholder="Barangay" name="resBarangay" value={formData.personalInfo.resBarangay} onChange={handlePersonalInfoChange} className="bg-white border-slate-200 rounded-xl py-2 px-3 text-sm" />
+                                                <input placeholder="Hse/Lot" name="resHouseNo" value={formData.personalInfo.resHouseNo || ''} onChange={handlePersonalInfoChange} className="bg-white border-slate-200 rounded-xl py-2 px-3 text-sm" />
+                                                <input placeholder="Street" name="resStreet" value={formData.personalInfo.resStreet || ''} onChange={handlePersonalInfoChange} className="bg-white border-slate-200 rounded-xl py-2 px-3 text-sm" />
+                                                <input placeholder="Subdivision" name="resSubdivision" value={formData.personalInfo.resSubdivision || ''} onChange={handlePersonalInfoChange} className="bg-white border-slate-200 rounded-xl py-2 px-3 text-sm" />
+                                                <input placeholder="Barangay" name="resBarangay" value={formData.personalInfo.resBarangay || ''} onChange={handlePersonalInfoChange} className="bg-white border-slate-200 rounded-xl py-2 px-3 text-sm" />
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                 <PdsSelect label="City" name="resCity" value={formData.personalInfo.resCity} options={dropVals.cities} onChange={updatePersonalInfoValue} className="bg-white" />
@@ -525,13 +587,13 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
                                     <section className="space-y-8">
                                         <div className="flex items-center gap-3"><div className="h-1.5 w-8 bg-pink-500 rounded-full" /><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Spouse & Parents Information</h4></div>
                                         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Spouse Surname</label><input name="spouseSurname" value={formData.familyBackground.spouseSurname} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Spouse First Name</label><input name="spouseFirstName" value={formData.familyBackground.spouseFirstName} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
-                                            <div className="space-y-1.5 md:col-span-2"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Spouse Occupation</label><input name="spouseOccupation" value={formData.familyBackground.spouseOccupation} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Spouse Surname</label><input name="spouseSurname" value={formData.familyBackground.spouseSurname || ''} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Spouse First Name</label><input name="spouseFirstName" value={formData.familyBackground.spouseFirstName || ''} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
+                                            <div className="space-y-1.5 md:col-span-2"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Spouse Occupation</label><input name="spouseOccupation" value={formData.familyBackground.spouseOccupation || ''} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Father Surname</label><input name="fatherSurname" value={formData.familyBackground.fatherSurname} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
-                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Mother Maiden Surname</label><input name="motherSurname" value={formData.familyBackground.motherSurname} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Father Surname</label><input name="fatherSurname" value={formData.familyBackground.fatherSurname || ''} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
+                                            <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">Mother Maiden Surname</label><input name="motherSurname" value={formData.familyBackground.motherSurname || ''} onChange={handleFamilyChange} className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm" /></div>
                                             <div className="space-y-1.5 flex items-end">
                                                 <button onClick={() => setFormData(p => ({ ...p, familyBackground: { ...p.familyBackground, children: [...p.familyBackground.children, { name: '', birthDate: '' }] } }))} type="button" className="w-full bg-blue-50 text-blue-600 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-100 transition-all">+ Add Child Registry Entry</button>
                                             </div>
@@ -541,11 +603,11 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
                                                 <div key={i} className="flex flex-col md:flex-row gap-4 p-5 bg-slate-50/50 rounded-2xl border border-slate-100 animate-in fade-in slide-in-from-top-2 duration-300 group relative">
                                                     <div className="flex-1 space-y-1.5 font-semibold">
                                                         <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Full name of child</label>
-                                                        <input placeholder="Child full name" value={child.name} onChange={(e) => updateChildren(i, 'name', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:border-blue-300 transition-all shadow-sm" />
+                                                        <input placeholder="Child full name" value={child.name || ''} onChange={(e) => updateChildren(i, 'name', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:border-blue-300 transition-all shadow-sm" />
                                                     </div>
                                                     <div className="w-full md:w-48 space-y-1.5">
                                                         <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Birth date</label>
-                                                        <input type="date" value={child.birthDate} onChange={(e) => updateChildren(i, 'birthDate', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:border-blue-300 transition-all shadow-sm" />
+                                                        <input type="date" value={child.birthDate || ''} onChange={(e) => updateChildren(i, 'birthDate', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:border-blue-300 transition-all shadow-sm" />
                                                     </div>
                                                     <button type="button" onClick={() => setFormData(p => ({ ...p, familyBackground: { ...p.familyBackground, children: p.familyBackground.children.filter((_, idx) => idx !== i) } }))} className="absolute top-2 right-2 md:relative md:top-0 md:right-0 p-2.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all group-hover:scale-105 md:self-end">
                                                         <Trash2 size={16} />
@@ -576,7 +638,7 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
                                                     <PdsSelect label="From" name="from" value={edu.from} options={dropVals.yearsFrom} onChange={(_, v) => updateEducation(i, 'from', v)} placeholder="Year" className="bg-white" />
                                                     <PdsSelect label="To" name="to" value={edu.to} options={dropVals.yearsTo} onChange={(_, v) => updateEducation(i, 'to', v)} placeholder="Year" className="bg-white" />
                                                     <PdsSelect label="Units Earned" name="units" value={edu.units} options={dropVals.units} onChange={(_, v) => updateEducation(i, 'units', v)} className="bg-white" />
-                                                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 uppercase ml-1">Year Graduated</label><input placeholder="YYYY" value={edu.yearGraduated} onChange={(e) => updateEducation(i, 'yearGraduated', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2 px-4 text-sm outline-none" /></div>
+                                                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 uppercase ml-1">Year Graduated</label><input placeholder="YYYY" value={edu.yearGraduated || ''} onChange={(e) => updateEducation(i, 'yearGraduated', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2 px-4 text-sm outline-none" /></div>
                                                     <PdsSelect label="Honors" name="honors" value={edu.honors} options={dropVals.honors} onChange={(_, v) => updateEducation(i, 'honors', v)} className="bg-white" />
                                                 </div>
                                             </div>
@@ -596,10 +658,10 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
                                             <div key={i} className="bg-slate-50/50 p-8 rounded-[2rem] border border-slate-100 flex gap-8 items-start relative group">
                                                 <button onClick={() => setFormData(p => ({ ...p, civilServiceEligibility: p.civilServiceEligibility.filter((_, idx) => idx !== i) }))} className="absolute top-6 right-6 p-2 text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100"><Trash2 size={20} /></button>
                                                 <div className="flex-1 grid grid-cols-2 gap-6">
-                                                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 uppercase ml-1">Eligibility Type</label><input placeholder="RA 1080 (Teacher)" value={elig.type} onChange={(e) => updateEligibility(i, 'type', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none shadow-sm" /></div>
-                                                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 uppercase ml-1">Rating</label><input placeholder="85.40%" value={elig.rating} onChange={(e) => updateEligibility(i, 'rating', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none shadow-sm" /></div>
-                                                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 uppercase ml-1">Exam Date</label><input type="date" value={elig.date} onChange={(e) => updateEligibility(i, 'date', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none shadow-sm" /></div>
-                                                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 uppercase ml-1">License No.</label><input value={elig.licenseNumber} onChange={(e) => updateEligibility(i, 'licenseNumber', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none shadow-sm font-mono tracking-widest" /></div>
+                                                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 uppercase ml-1">Eligibility Type</label><input placeholder="RA 1080 (Teacher)" value={elig.type || ''} onChange={(e) => updateEligibility(i, 'type', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none shadow-sm" /></div>
+                                                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 uppercase ml-1">Rating</label><input placeholder="85.40%" value={elig.rating || ''} onChange={(e) => updateEligibility(i, 'rating', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none shadow-sm" /></div>
+                                                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 uppercase ml-1">Exam Date</label><input type="date" value={elig.date || ''} onChange={(e) => updateEligibility(i, 'date', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none shadow-sm" /></div>
+                                                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 uppercase ml-1">License No.</label><input value={elig.licenseNumber || ''} onChange={(e) => updateEligibility(i, 'licenseNumber', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none shadow-sm font-mono tracking-widest" /></div>
                                                 </div>
                                             </div>
                                         ))}
