@@ -55,11 +55,6 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
     // --- Status helper functions ---
     const CURRENT_YEAR = new Date().getFullYear();
 
-    const isLicenseExpiringThisYear = (emp: any): boolean => {
-        if (!emp.license_expiration_date) return false;
-        return new Date(emp.license_expiration_date).getFullYear() === CURRENT_YEAR;
-    };
-
     const isRetiringThisYear = (emp: any): boolean => {
         // Primary: explicit retirement_date field falls in current year
         if (emp.retirement_date) {
@@ -79,19 +74,39 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
     };
 
     // --- Precomputed status flags per employee ---
-    const employeesWithStatus = useMemo(() =>
-        initialEmployees.map(emp => ({
-            ...emp,
-            _licenseExpiring: isLicenseExpiringThisYear(emp),
-            _retiring: isRetiringThisYear(emp),
-            _newlyHired: isNewlyHiredThisYear(emp),
-        })),
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [initialEmployees]
-    );
+    const employeesWithStatus = useMemo(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const threeMonthsFromNow = new Date();
+        threeMonthsFromNow.setMonth(today.getMonth() + 3);
+        threeMonthsFromNow.setHours(0, 0, 0, 0);
+
+        return initialEmployees.map(emp => {
+            let _licenseExpiring = false;
+            let _licenseExpired = false;
+
+            if (emp.license_expiration_date) {
+                const expDate = new Date(emp.license_expiration_date);
+                expDate.setHours(0, 0, 0, 0);
+                if (expDate < today) {
+                    _licenseExpired = true;
+                } else if (expDate <= threeMonthsFromNow) {
+                    _licenseExpiring = true;
+                }
+            }
+
+            return {
+                ...emp,
+                _licenseExpiring,
+                _licenseExpired,
+                _retiring: isRetiringThisYear(emp),
+                _newlyHired: isNewlyHiredThisYear(emp),
+            };
+        });
+    }, [initialEmployees]);
 
     // Quick-filter pill counts (always reflects full list)
-    const licenseExpiringCount = useMemo(() => employeesWithStatus.filter(e => e._licenseExpiring).length, [employeesWithStatus]);
+    const licenseExpiringCount = useMemo(() => employeesWithStatus.filter(e => e._licenseExpiring || e._licenseExpired).length, [employeesWithStatus]);
     const retiringCount = useMemo(() => employeesWithStatus.filter(e => e._retiring).length, [employeesWithStatus]);
     const newlyHiredCount = useMemo(() => employeesWithStatus.filter(e => e._newlyHired).length, [employeesWithStatus]);
 
@@ -99,7 +114,7 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
         return employeesWithStatus.filter(emp => {
             const fullName = `${emp.first_name || ''} ${emp.middle_name || ''} ${emp.last_name || ''}`.toLowerCase();
             const matchesSearch = fullName.includes(searchQuery.toLowerCase()) ||
-                (emp.employee_id && emp.employee_id.includes(searchQuery)) ||
+                (emp.agency_employee_no && emp.agency_employee_no.includes(searchQuery)) ||
                 (emp.item_number && emp.item_number.toLowerCase().includes(searchQuery.toLowerCase()));
 
             const matchesDept = selectedDept === 'All' || emp.department === selectedDept;
@@ -109,7 +124,7 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
 
             const matchesStatus =
                 selectedStatusFilter === 'All' ||
-                (selectedStatusFilter === 'license_expiring' && emp._licenseExpiring) ||
+                (selectedStatusFilter === 'license_expiring' && (emp._licenseExpiring || emp._licenseExpired)) ||
                 (selectedStatusFilter === 'retiring' && emp._retiring) ||
                 (selectedStatusFilter === 'newly_hired' && emp._newlyHired);
 
@@ -207,7 +222,7 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                         <input
                             type="text"
-                            placeholder="Search by name or employee ID..."
+                            placeholder="Search by name or agency employee no..."
                             className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:bg-white transition-all"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -272,7 +287,7 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
             <div className="bg-white px-6 py-4 rounded-2xl border border-slate-200 shadow-sm">
                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">Quick Filters</p>
                 <div className="flex flex-wrap gap-2">
-                    {/* License Expiring This Year */}
+                    {/* License Expiring/Expired */}
                     <button
                         onClick={() => toggleStatusFilter('license_expiring')}
                         className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all ${selectedStatusFilter === 'license_expiring'
@@ -280,7 +295,7 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
                             : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
                             }`}
                     >
-                        License Expiring This Year
+                        License Expiring/Expired
                         <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-black ${selectedStatusFilter === 'license_expiring' ? 'bg-white/30 text-white' : 'bg-amber-200 text-amber-800'
                             }`}>
                             {licenseExpiringCount}
@@ -350,10 +365,15 @@ export default function EmployeeClientPage({ initialEmployees }: { initialEmploy
                                                 </div>
                                                 <div>
                                                     <p className="text-sm font-bold text-slate-800 uppercase">{emp.last_name}, {emp.first_name} {emp.middle_name || ''}</p>
-                                                    <p className="text-[11px] text-slate-400 font-medium">ID: {emp.employee_id}</p>
+                                                    <p className="text-[11px] text-slate-400 font-medium">Agency Employee No: {emp.agency_employee_no || 'N/A'}</p>
                                                     {/* Status Badges */}
-                                                    {(emp._licenseExpiring || emp._retiring || emp._newlyHired) && (
+                                                    {(emp._licenseExpiring || emp._licenseExpired || emp._retiring || emp._newlyHired) && (
                                                         <div className="flex flex-wrap gap-1 mt-1">
+                                                            {emp._licenseExpired && (
+                                                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-red-100 text-red-700 border border-red-200 uppercase">
+                                                                    License Expired
+                                                                </span>
+                                                            )}
                                                             {emp._licenseExpiring && (
                                                                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-amber-100 text-amber-700 border border-amber-200 uppercase">
                                                                     License Expiring

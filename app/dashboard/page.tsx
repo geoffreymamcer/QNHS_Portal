@@ -7,7 +7,22 @@ export default async function DashboardPage() {
 
     // Fetch employees and positions in parallel
     const [{ data: employees, error }, { data: positions, error: posError }] = await Promise.all([
-        supabase.from('employees').select('*'),
+        supabase.from('employees').select(`
+            *,
+            employee_eligibility (
+                license_valid_until
+            ),
+            employee_pds (
+                sex_at_birth
+            ),
+            positions (
+                classification,
+                item_number,
+                departments (
+                    name
+                )
+            )
+        `),
         supabase.from('positions').select('item_number, is_active'),
     ]);
 
@@ -18,7 +33,24 @@ export default async function DashboardPage() {
 
     const now = new Date();
     const currentYear = now.getFullYear();
-    const allEmployees = employees ?? [];
+    const allEmployees = employees?.map((emp: any) => {
+        let license_date = emp.license_expiration_date;
+        if (emp.employee_eligibility && emp.employee_eligibility.length > 0) {
+            const valid = emp.employee_eligibility.find((el: any) => el.license_valid_until);
+            if (valid) {
+                license_date = valid.license_valid_until;
+            }
+        }
+        return {
+            ...emp,
+            license_expiration_date: license_date,
+            classification: emp.positions?.classification || 'Unknown',
+            department: emp.positions?.departments?.name || 'Unassigned',
+            item_number: emp.positions?.item_number || null,
+            birthdate: emp.birth_date || null,
+            sex: emp.employee_pds?.sex_at_birth || emp.gender || 'Unknown',
+        };
+    }) ?? [];
     const allPositions = positions ?? [];
 
     // -------------------------
@@ -47,11 +79,21 @@ export default async function DashboardPage() {
     const totalPositionsCount = activePositions.length;
 
     // -------------------------
-    // KPI: License Expiring This Year
+    // KPI: License Expiring / Expired
     // -------------------------
     const licenseExpiringCount = activeEmployeesList.filter(e => {
         if (!e.license_expiration_date) return false;
-        return new Date(e.license_expiration_date).getFullYear() === currentYear;
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const threeMonthsFromNow = new Date();
+        threeMonthsFromNow.setMonth(today.getMonth() + 3);
+        threeMonthsFromNow.setHours(0, 0, 0, 0);
+        
+        const expDate = new Date(e.license_expiration_date);
+        expDate.setHours(0, 0, 0, 0);
+        
+        return expDate <= threeMonthsFromNow;
     }).length;
 
     // -------------------------
@@ -110,7 +152,7 @@ export default async function DashboardPage() {
         {
             label: 'License Expiring',
             value: licenseExpiringCount.toString().padStart(2, '0'),
-            change: `Expiring in ${currentYear}`,
+            change: 'Within 3 months or passed',
             color: 'amber',
             icon: <ShieldAlert className="h-6 w-6 text-amber-600" />,
         },
