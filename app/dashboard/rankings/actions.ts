@@ -273,3 +273,111 @@ export async function checkIsAdmin() {
         return false;
     }
 }
+
+export async function updateApplicant(id: string, data: any) {
+    const supabase = await createClient();
+
+    // Resolve or dynamically create the position ID to satisfy the foreign key constraint
+    let positionId = null;
+    const selectedLevel = data.profile.schoolLevel || 'Junior High School';
+
+    if (data.profile.appliedPosition) {
+        const titleTrimmed = data.profile.appliedPosition.trim();
+        
+        // 1. Check if a position with this exact title and level already exists (case-insensitive)
+        const { data: existingPos } = await supabase
+            .from('positions')
+            .select('id')
+            .ilike('title', titleTrimmed)
+            .eq('level', selectedLevel)
+            .limit(1)
+            .maybeSingle();
+
+        if (existingPos) {
+            positionId = existingPos.id;
+        } else {
+            // 2. Query any existing position with the same title to inherit its classification and salary grade
+            const { data: basePos } = await supabase
+                .from('positions')
+                .select('salary_grade_id, classification')
+                .ilike('title', titleTrimmed)
+                .limit(1)
+                .maybeSingle();
+
+            // 3. Dynamically create the position with a temporary item number and the correct level
+            const tempItemNumber = `TEMP-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+            const { data: newPos, error: createError } = await supabase
+                .from('positions')
+                .insert([{
+                    item_number: tempItemNumber,
+                    title: titleTrimmed,
+                    classification: basePos?.classification || 'Teaching',
+                    salary_grade_id: basePos?.salary_grade_id || null,
+                    level: selectedLevel,
+                    is_active: true
+                }])
+                .select('id')
+                .single();
+
+            if (createError) {
+                console.error('Error auto-creating position:', createError);
+                throw new Error(`Failed to create new position: ${createError.message}`);
+            }
+            positionId = newPos.id;
+        }
+    }
+
+    // Map age to a birth date date type
+    let birthDate = null;
+    if (data.profile.age) {
+        const ageNum = parseInt(data.profile.age);
+        if (!isNaN(ageNum)) {
+            const birthYear = new Date().getFullYear() - ageNum;
+            birthDate = `${birthYear}-01-01`;
+        }
+    }
+
+    const { error } = await supabase
+        .from('applicants')
+        .update({
+            applicant_code: data.profile.applicantCode,
+            hiring_date: data.hiringDate,
+            applied_position_id: positionId || null,
+
+            // Profile
+            last_name: data.profile.surname,
+            first_name: data.profile.firstname,
+            middle_name: data.profile.middlename,
+            name_extension: data.profile.extension,
+            birth_date: birthDate,
+            gender: data.profile.sex || null,
+            civil_status: data.profile.civilStatus,
+            religion: data.profile.religion,
+            disability: data.profile.disability,
+            ethnic_group: data.profile.ethnicGroup,
+
+            // Contact
+            email: data.background.email,
+            contact_no: data.background.contactNo,
+            address: data.background.address,
+
+            // Professional
+            eligibility: data.professional.eligibility,
+            education: data.background.education,
+            trainings: data.professional.trainings,
+            experiences: data.professional.experiences,
+
+            // Evaluation
+            status: data.evaluation.status,
+            performance: data.evaluation.performance,
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+    if (error) {
+        console.error('Error updating applicant:', error);
+        throw new Error(error.message);
+    }
+
+    revalidatePath('/dashboard/rankings');
+}

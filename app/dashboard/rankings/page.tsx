@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Users, Search, Filter, ChevronRight, User, X, FileText, Download, DollarSign, Award } from 'lucide-react';
+import { Plus, Users, Search, Filter, ChevronRight, User, X, FileText, Download, DollarSign, Award, Edit } from 'lucide-react';
 import AddApplicantModal from './AddApplicantModal';
 import AddSalaryGradeModal from './AddSalaryGradeModal'; // New Modal
 import QualificationStandardsModal from './QualificationStandardsModal';
@@ -16,6 +16,7 @@ export default function RankingsPage() {
     const [isApplicantModalOpen, setIsApplicantModalOpen] = useState(false);
     const [isSalaryModalOpen, setIsSalaryModalOpen] = useState(false); // New State
     const [isQSModalOpen, setIsQSModalOpen] = useState(false);
+    const [editingApplicant, setEditingApplicant] = useState<any | null>(null);
     const [applicants, setApplicants] = useState<any[]>([]);
     const [salaryGrades, setSalaryGrades] = useState<any[]>([]);
     const [qsStandards, setQsStandards] = useState<any[]>([]);
@@ -361,8 +362,16 @@ export default function RankingsPage() {
                                                                     </span>
                                                                 </td>
                                                                 <td className="px-6 py-4 text-right">
-                                                                    <button className="p-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all opacity-0 group-hover/item:opacity-100">
-                                                                        <ChevronRight size={20} />
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            const fullName = `${applicant.firstname} ${applicant.surname}`;
+                                                                            if (window.confirm(`Are you ${fullName}?`)) {
+                                                                                setEditingApplicant(applicant);
+                                                                            }
+                                                                        }}
+                                                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-xl font-bold text-[10px] uppercase tracking-wider hover:bg-blue-100 transition-all shadow-sm active:scale-95 border border-blue-100"
+                                                                    >
+                                                                        <Edit size={12} /> Edit
                                                                     </button>
                                                                 </td>
                                                             </tr>
@@ -380,8 +389,9 @@ export default function RankingsPage() {
             </div>
 
             {/* Modals */}
-            <AddApplicantModal isOpen={isApplicantModalOpen} onClose={() => {
+            <AddApplicantModal isOpen={isApplicantModalOpen || editingApplicant !== null} editingApplicant={editingApplicant} onClose={() => {
                 setIsApplicantModalOpen(false);
+                setEditingApplicant(null);
                 fetchData();
             }} />
 

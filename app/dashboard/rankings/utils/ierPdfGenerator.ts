@@ -79,8 +79,25 @@ export const generateIERPDF = (data: IERData, action: 'download' | 'view' = 'dow
         currentY += 10;
 
         // --- 4. Table Section ---
+        const eduLevelRank: Record<string, number> = {
+            'graduate': 4,
+            'college': 3,
+            'secondary': 2,
+            'elementary': 1
+        };
+
         const tableBody = pageApplicants.map((applicant, localIdx) => {
-            const latestEdu = applicant.education?.length > 0 ? applicant.education[0] : null;
+            const sortedEduList = [...(applicant.education || [])].sort((a: any, b: any) => {
+                const rankA = eduLevelRank[a.level?.toLowerCase()] || 0;
+                const rankB = eduLevelRank[b.level?.toLowerCase()] || 0;
+                if (rankA !== rankB) {
+                    return rankB - rankA; // Higher educational level takes precedence
+                }
+                const yearA = parseInt(a.yearGraduated || a.year) || 0;
+                const yearB = parseInt(b.yearGraduated || b.year) || 0;
+                return yearB - yearA; // Latest graduation year takes precedence
+            });
+            const latestEdu = sortedEduList.length > 0 ? sortedEduList[0] : null;
             const eduText = latestEdu ? `${latestEdu.degree} (${latestEdu.school}, ${latestEdu.yearGraduated || latestEdu.year || 'N/A'})` : 'N/A';
 
             const totalHours = applicant.trainings?.reduce((sum: number, t: any) => sum + (parseInt(t.hours) || 0), 0) || 0;

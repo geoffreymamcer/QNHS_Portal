@@ -2,16 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, User, Heart, GraduationCap, Plus, Trash2, ChevronRight, ChevronLeft, Save, Info } from 'lucide-react';
-import { createApplicant, getPositions, checkIsAdmin } from './actions';
+import { createApplicant, getPositions, checkIsAdmin, updateApplicant } from './actions';
 
 interface AddApplicantModalProps {
     isOpen: boolean;
     onClose: () => void;
+    editingApplicant?: any | null;
 }
 
 type FormSection = 'profile' | 'background' | 'professional' | 'evaluation';
 
-export default function AddApplicantModal({ isOpen, onClose }: AddApplicantModalProps) {
+export default function AddApplicantModal({ isOpen, onClose, editingApplicant }: AddApplicantModalProps) {
     const [activeSection, setActiveSection] = useState<FormSection>('profile');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
@@ -42,8 +43,75 @@ export default function AddApplicantModal({ isOpen, onClose }: AddApplicantModal
             checkAdmin();
             setIsCustomPosition(false);
             setActiveSection('profile');
+
+            if (editingApplicant) {
+                setFormData({
+                    hiringDate: editingApplicant.hiring_date || new Date().toISOString().split('T')[0],
+                    profile: {
+                        iesNo: editingApplicant.ies_no || '',
+                        applicantCode: editingApplicant.applicant_code || '',
+                        appliedPosition: editingApplicant.applied_position || '',
+                        appliedPositionId: editingApplicant.applied_position_id || '',
+                        schoolLevel: editingApplicant.school_level || 'Junior High School',
+                        surname: editingApplicant.surname || '',
+                        firstname: editingApplicant.firstname || '',
+                        middlename: editingApplicant.middlename || '',
+                        extension: editingApplicant.extension || '',
+                        age: editingApplicant.age?.toString() || '',
+                        sex: editingApplicant.sex || '',
+                        civilStatus: editingApplicant.civil_status || '',
+                        religion: editingApplicant.religion || '',
+                        disability: editingApplicant.disability || '',
+                        ethnicGroup: editingApplicant.ethnic_group || ''
+                    },
+                    background: {
+                        email: editingApplicant.email || '',
+                        contactNo: editingApplicant.contact_no || '',
+                        address: editingApplicant.address || '',
+                        education: editingApplicant.education || []
+                    },
+                    professional: {
+                        trainings: editingApplicant.trainings || [],
+                        experiences: editingApplicant.experiences || [],
+                        eligibility: editingApplicant.eligibility || ''
+                    },
+                    evaluation: {
+                        status: editingApplicant.status || '',
+                        performance: editingApplicant.performance || ''
+                    }
+                });
+            } else {
+                setFormData({
+                    hiringDate: new Date().toISOString().split('T')[0],
+                    profile: {
+                        iesNo: '',
+                        applicantCode: '',
+                        appliedPosition: '',
+                        appliedPositionId: '',
+                        schoolLevel: 'Junior High School',
+                        surname: '', firstname: '', middlename: '', extension: '',
+                        age: '', sex: '', civilStatus: '',
+                        religion: '', disability: '', ethnicGroup: ''
+                    },
+                    background: {
+                        email: '',
+                        contactNo: '',
+                        address: '',
+                        education: []
+                    },
+                    professional: {
+                        trainings: [],
+                        experiences: [],
+                        eligibility: ''
+                    },
+                    evaluation: {
+                        status: '',
+                        performance: ''
+                    }
+                });
+            }
         }
-    }, [isOpen]);
+    }, [isOpen, editingApplicant]);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -123,8 +191,13 @@ export default function AddApplicantModal({ isOpen, onClose }: AddApplicantModal
     const handleSubmit = async () => {
         setIsSubmitting(true);
         try {
-            await createApplicant(formData);
-            alert(isAdmin ? 'Initial Evaluation Result successfully registered!' : 'Your application was successfully submitted!');
+            if (editingApplicant?.id) {
+                await updateApplicant(editingApplicant.id, formData);
+                alert('Applicant information successfully updated!');
+            } else {
+                await createApplicant(formData);
+                alert(isAdmin ? 'Initial Evaluation Result successfully registered!' : 'Your application was successfully submitted!');
+            }
             onClose();
         } catch (error: any) {
             alert(`Error: ${error.message}`);
@@ -142,11 +215,15 @@ export default function AddApplicantModal({ isOpen, onClose }: AddApplicantModal
                 <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
                     <div className="flex items-center gap-4">
                         <div className="h-12 w-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
-                            <Plus size={24} strokeWidth={3} />
+                            {editingApplicant ? <Save size={24} strokeWidth={3} /> : <Plus size={24} strokeWidth={3} />}
                         </div>
                         <div>
-                            <h2 className="text-2xl font-black text-slate-900 tracking-tight">New Applicant Information</h2>
-                            <p className="text-sm text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">Fill all the informations below</p>
+                            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                                {editingApplicant ? 'Edit Applicant Information' : 'New Applicant Information'}
+                            </h2>
+                            <p className="text-sm text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">
+                                {editingApplicant ? 'Modify the details of this applicant' : 'Fill all the informations below'}
+                            </p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-3 hover:bg-slate-100 rounded-2xl transition-all text-slate-400">
@@ -513,10 +590,10 @@ export default function AddApplicantModal({ isOpen, onClose }: AddApplicantModal
                                     }`}
                             >
                                 {isSubmitting ? (
-                                    <>{isAdmin ? 'Registering...' : 'Submitting...'}</>
+                                    <>{editingApplicant ? 'Saving...' : (isAdmin ? 'Registering...' : 'Submitting...')}</>
                                 ) : (
                                     <>
-                                        <Save size={20} strokeWidth={3} /> {isAdmin ? 'Register Evaluation' : 'Submit Application'}
+                                        <Save size={20} strokeWidth={3} /> {editingApplicant ? 'Save Changes' : (isAdmin ? 'Register Evaluation' : 'Submit Application')}
                                     </>
                                 )}
                             </button>
