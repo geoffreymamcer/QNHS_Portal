@@ -2,19 +2,23 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Users, Search, Filter, ChevronRight, User, X, FileText, Download, DollarSign } from 'lucide-react';
+import { Plus, Users, Search, Filter, ChevronRight, User, X, FileText, Download, DollarSign, Award } from 'lucide-react';
 import AddApplicantModal from './AddApplicantModal';
 import AddSalaryGradeModal from './AddSalaryGradeModal'; // New Modal
+import QualificationStandardsModal from './QualificationStandardsModal';
 import { getApplicants, checkIsAdmin } from './actions';
 import { getSalaryGrades } from './salary-actions'; // New Actions
 import { generateIERPDF } from './utils/ierPdfGenerator';
+import { getCombinedStandardsDb } from './qs-actions';
 
 export default function RankingsPage() {
     const router = useRouter();
     const [isApplicantModalOpen, setIsApplicantModalOpen] = useState(false);
     const [isSalaryModalOpen, setIsSalaryModalOpen] = useState(false); // New State
+    const [isQSModalOpen, setIsQSModalOpen] = useState(false);
     const [applicants, setApplicants] = useState<any[]>([]);
     const [salaryGrades, setSalaryGrades] = useState<any[]>([]);
+    const [qsStandards, setQsStandards] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isAdmin, setIsAdmin] = useState(false);
 
@@ -39,6 +43,9 @@ export default function RankingsPage() {
         try {
             const data = await getApplicants();
             setApplicants(data || []);
+            
+            const qs = await getCombinedStandardsDb();
+            setQsStandards(qs || []);
         } catch (error) {
             console.error('Fetch error:', error);
         } finally {
@@ -53,6 +60,29 @@ export default function RankingsPage() {
         } catch (error) {
             console.error('Salary grades fetch error:', error);
         }
+    };
+
+    const getQsForPosition = (title: string, level: string) => {
+        const normalizedPos = title.trim().toLowerCase();
+        const normalizedLevel = (level || 'Junior High School').trim();
+        
+        const exactMatch = qsStandards.find(s => 
+            s.positionTitle.toLowerCase() === normalizedPos &&
+            s.schoolLevel === normalizedLevel
+        );
+        if (exactMatch) return exactMatch;
+        
+        const titleMatch = qsStandards.find(s => 
+            s.positionTitle.toLowerCase() === normalizedPos
+        );
+        if (titleMatch) return titleMatch;
+
+        return {
+            education: "Bachelor's degree in Education or equivalent with professional units",
+            training: "None required",
+            experience: "None required",
+            eligibility: "RA 1080 (Teacher)"
+        };
     };
 
     // Grouping Logic: Batch -> Position -> Applicants
@@ -75,10 +105,15 @@ export default function RankingsPage() {
         }
 
         const posName = curr.applied_position || 'Unspecified Position';
-        let position = batch.positions.find((p: any) => p.title === posName);
+        const level = curr.school_level || 'Junior High School';
+        const key = `${posName} - ${level}`;
+
+        let position = batch.positions.find((p: any) => p.key === key);
         if (!position) {
             position = {
+                key,
                 title: posName,
+                level,
                 salaryGrade: curr.salary_grade || null,
                 salary: curr.salary || null,
                 applicants: []
@@ -98,57 +133,6 @@ export default function RankingsPage() {
         qualified: applicants.filter(a => a.status === 'Qualified').length,
         disqualified: applicants.filter(a => a.status === 'Disqualified').length,
         pending: applicants.filter(a => !a.status).length
-    };
-
-    const getQualificationStandards = (pos: string) => {
-        const title = pos.toLowerCase();
-
-        // Baseline for Teacher III (as requested)
-        const commonTS = {
-            education: "Bachelor’s degree; or bachelor’s degree in relevant subjects, or learning area with atleast 18 professional units in Education",
-            training: "16 hours of training in any of or a cumulative of the following: curriculum, pedagogy, subject specialization, acquired within the last 5 years.",
-            experience: "2 years of teaching experience",
-            eligibility: "RA1080 as amended (Teacher - Secondary)"
-        };
-
-        if (title.includes('master teacher')) {
-            return {
-                education: "Master's degree in Education or its equivalent",
-                training: "12 hours of relevant training",
-                experience: "2 years as Teacher III or 2 years as MT-I (for MT-II)",
-                eligibility: "RA 1080 (Teacher)"
-            };
-        }
-
-        if (title.includes('head teacher')) {
-            return {
-                education: "Bachelor's degree in Secondary Education; or Bachelor's degree w/ 18 professional units in Education with appropriate field of specialization",
-                training: "24 hours of relevant training",
-                experience: "HT-I: TIC for 1 yr; or Teacher for 3 yrs",
-                eligibility: "RA 1080 (Teacher)"
-            };
-        }
-
-        if (title.includes('teacher i')) {
-            return {
-                education: "Bachelor's degree in Secondary Education or any Bachelor's degree with 18 professional units in Education",
-                training: "None required",
-                experience: "None required",
-                eligibility: "RA 1080 (Teacher)"
-            };
-        }
-
-        if (title.includes('teacher ii')) {
-            return {
-                education: "Bachelor's degree in Secondary Education or equivalent",
-                training: "None required",
-                experience: "1 year of relevant experience",
-                eligibility: "RA 1080 (Teacher)"
-            };
-        }
-
-        // Default or Teacher III
-        return commonTS;
     };
 
     const handleGenerateReport = (batch: any, pos: any, action: 'view' | 'download') => {
@@ -182,11 +166,12 @@ export default function RankingsPage() {
         generateIERPDF({
             hiringDate: batch.hiringDate,
             position: pos.title,
+            schoolLevel: pos.level,
             salaryGrade: grade ? `${grade}` : 'To be determined',
             monthlySalary: monthlyValue > 0 
                 ? `PHP ${monthlyValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}` 
                 : 'PHP 0.00',
-            qs: getQualificationStandards(pos.title),
+            qs: getQsForPosition(pos.title, pos.level),
             applicants: pos.applicants
         }, action);
     };
@@ -214,6 +199,19 @@ export default function RankingsPage() {
                     >
                         <DollarSign size={20} className="text-blue-600" />
                         Salary Grades
+                    </button>
+                    <button
+                        onClick={() => {
+                            if (!isAdmin) {
+                                router.push('/login');
+                            } else {
+                                setIsQSModalOpen(true);
+                            }
+                        }}
+                        className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold shadow-sm hover:bg-slate-50 hover:-translate-y-0.5 transition-all active:scale-95 whitespace-nowrap"
+                    >
+                        <Award size={20} className="text-blue-600" />
+                        Qualification Standards
                     </button>
                     <button
                         onClick={() => setIsApplicantModalOpen(true)}
@@ -295,8 +293,17 @@ export default function RankingsPage() {
                                                     IER
                                                 </div>
                                                 <div>
-                                                    <h3 className="font-bold text-slate-900 tracking-tight">{pos.title}</h3>
-                                                    <p className="text-xs text-slate-400 font-medium">{pos.applicants.length} Applicants</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <h3 className="font-bold text-slate-900 tracking-tight">{pos.title}</h3>
+                                                        <span className={`px-2.5 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest ${
+                                                            pos.level?.includes('Senior') 
+                                                                ? 'bg-amber-50 text-amber-700 border border-amber-100' 
+                                                                : 'bg-indigo-50 text-indigo-700 border border-indigo-100'
+                                                        }`}>
+                                                            {pos.level === 'Senior High School' ? 'SHS' : 'JHS'}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">{pos.applicants.length} Applicants</p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2">
@@ -382,6 +389,13 @@ export default function RankingsPage() {
                 <AddSalaryGradeModal isOpen={isSalaryModalOpen} onClose={() => {
                     setIsSalaryModalOpen(false);
                     fetchSalaryGrades(); // Refresh salary grade lookup
+                }} />
+            )}
+
+            {isAdmin && (
+                <QualificationStandardsModal isOpen={isQSModalOpen} onClose={() => {
+                    setIsQSModalOpen(false);
+                    fetchData(); // Refresh data to immediately reflect any updated qualification standards
                 }} />
             )}
         </div>

@@ -22,30 +22,42 @@ export async function createApplicant(data: any) {
     const supabase = await createClient();
 
     // Resolve or dynamically create the position ID to satisfy the foreign key constraint
-    let positionId = data.profile.appliedPositionId;
-    
-    if (!positionId && data.profile.appliedPosition) {
+    let positionId = null;
+    const selectedLevel = data.profile.schoolLevel || 'Junior High School';
+
+    if (data.profile.appliedPosition) {
         const titleTrimmed = data.profile.appliedPosition.trim();
         
-        // 1. Check if a position with this exact title already exists (case-insensitive)
+        // 1. Check if a position with this exact title and level already exists (case-insensitive)
         const { data: existingPos } = await supabase
             .from('positions')
             .select('id')
             .ilike('title', titleTrimmed)
+            .eq('level', selectedLevel)
             .limit(1)
             .maybeSingle();
 
         if (existingPos) {
             positionId = existingPos.id;
         } else {
-            // 2. If it does not exist, dynamically create the position with a temporary item number
+            // 2. Query any existing position with the same title to inherit its classification and salary grade
+            const { data: basePos } = await supabase
+                .from('positions')
+                .select('salary_grade_id, classification')
+                .ilike('title', titleTrimmed)
+                .limit(1)
+                .maybeSingle();
+
+            // 3. Dynamically create the position with a temporary item number and the correct level
             const tempItemNumber = `TEMP-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
             const { data: newPos, error: createError } = await supabase
                 .from('positions')
                 .insert([{
                     item_number: tempItemNumber,
                     title: titleTrimmed,
-                    classification: 'Teaching', // Default classification
+                    classification: basePos?.classification || 'Teaching',
+                    salary_grade_id: basePos?.salary_grade_id || null,
+                    level: selectedLevel,
                     is_active: true
                 }])
                 .select('id')
@@ -69,9 +81,14 @@ export async function createApplicant(data: any) {
         }
     }
 
+    const currentYear = new Date().getFullYear();
+    const randomSeq = Math.floor(10000 + Math.random() * 90000);
+    const generatedIesNo = data.profile.iesNo?.trim() || `IES-${currentYear}-${randomSeq}`;
+    const generatedAppCode = data.profile.applicantCode?.trim() || `APP-${Math.floor(1000 + Math.random() * 9000)}`;
+
     const { error } = await supabase.from('applicants').insert([{
-        ies_no: data.profile.iesNo,
-        applicant_code: data.profile.applicantCode,
+        ies_no: generatedIesNo,
+        applicant_code: generatedAppCode,
         hiring_date: data.hiringDate,
         applied_position_id: positionId || null,
 
@@ -166,6 +183,7 @@ export async function getApplicants() {
             *,
             positions:applied_position_id (
                 title,
+                level,
                 salary_grades (
                     grade,
                     salary
@@ -200,6 +218,7 @@ export async function getApplicants() {
         applicant_code: item.applicant_code,
         hiring_date: item.hiring_date,
         applied_position: item.positions?.title || 'Unspecified Position',
+        school_level: (item.positions as any)?.level || 'Junior High School',
         salary_grade: (item.positions as any)?.salary_grades?.grade || null,
         salary: (item.positions as any)?.salary_grades?.salary || null,
         

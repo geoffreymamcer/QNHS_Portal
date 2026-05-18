@@ -251,3 +251,33 @@ USING (
     bucket_id = 'employee-photos' AND
     EXISTS (SELECT 1 FROM public.admins WHERE id = auth.uid())
 );
+
+-- ==========================================
+-- 13. Qualification Standards
+-- ==========================================
+CREATE TABLE IF NOT EXISTS public.qualification_standards (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  position_title text NOT NULL,
+  school_level text NOT NULL, -- 'Junior High School' or 'Senior High School'
+  education text NOT NULL,
+  training text NOT NULL,
+  experience text NOT NULL,
+  eligibility text NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT qualification_standards_pkey PRIMARY KEY (id),
+  CONSTRAINT unique_pos_level UNIQUE (position_title, school_level)
+) TABLESPACE pg_default;
+
+-- Enable Row Level Security (RLS)
+ALTER TABLE public.qualification_standards ENABLE ROW LEVEL SECURITY;
+
+-- Policies for public.qualification_standards
+DROP POLICY IF EXISTS "Public can view qualification standards" ON qualification_standards;
+DROP POLICY IF EXISTS "Admins can manage qualification standards" ON qualification_standards;
+
+CREATE POLICY "Public can view qualification standards" ON qualification_standards
+    FOR SELECT USING (TRUE);
+
+CREATE POLICY "Admins can manage qualification standards" ON qualification_standards
+    FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE id = auth.uid()));

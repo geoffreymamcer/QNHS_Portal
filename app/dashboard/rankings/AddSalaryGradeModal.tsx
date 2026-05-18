@@ -83,9 +83,9 @@ export default function AddSalaryGradeModal({ isOpen, onClose }: AddSalaryGradeM
     };
 
     const handleEdit = (item: SalaryGrade) => {
-        setFormData({ 
-            ...item, 
-            salary: Number((item.salary / 12).toFixed(2)) 
+        setFormData({
+            ...item,
+            salary: Number((item.salary / 12).toFixed(2))
         });
         setEditingOriginal({ grade: item.grade, step: item.step });
         setIsEditing(true);
@@ -117,7 +117,6 @@ export default function AddSalaryGradeModal({ isOpen, onClose }: AddSalaryGradeM
                         </div>
                         <div>
                             <h2 className="text-xl font-black text-blue-950 tracking-tight">Manage Salary Grades</h2>
-                            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Pricing & Step Tiers</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all">

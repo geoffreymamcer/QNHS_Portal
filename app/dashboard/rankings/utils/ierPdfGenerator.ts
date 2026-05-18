@@ -6,6 +6,7 @@ const QNHS_BLUE: [number, number, number] = [30, 58, 138];
 interface IERData {
     hiringDate: string;
     position: string;
+    schoolLevel?: string;
     salaryGrade: string;
     monthlySalary: string;
     qs: {
@@ -40,9 +41,10 @@ export const generateIERPDF = (data: IERData, action: 'download' | 'view' = 'dow
         addIERHeader(doc, pageWidth);
 
         // --- 2. Title Section ---
+        const titleSuffix = data.schoolLevel ? ` FOR ${data.schoolLevel.toUpperCase()}` : '';
         doc.setFontSize(12);
         doc.setFont('times', 'bold');
-        doc.text('INITIAL EVALUATION RESULT (IER)', pageWidth / 2, 58, { align: 'center' });
+        doc.text(`INITIAL EVALUATION RESULT (IER)${titleSuffix}`, pageWidth / 2, 58, { align: 'center' });
 
         // --- 3. Context Info Section ---
         let currentY = 68;

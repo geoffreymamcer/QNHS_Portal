@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, User, Heart, GraduationCap, Plus, Trash2, ChevronRight, ChevronLeft, Save } from 'lucide-react';
+import { X, User, Heart, GraduationCap, Plus, Trash2, ChevronRight, ChevronLeft, Save, Info } from 'lucide-react';
 import { createApplicant, getPositions, checkIsAdmin } from './actions';
 
 interface AddApplicantModalProps {
@@ -53,6 +53,7 @@ export default function AddApplicantModal({ isOpen, onClose }: AddApplicantModal
             applicantCode: '',
             appliedPosition: '',
             appliedPositionId: '',
+            schoolLevel: 'Junior High School',
             surname: '', firstname: '', middlename: '', extension: '',
             age: '', sex: '', civilStatus: '',
             religion: '', disability: '', ethnicGroup: ''
@@ -189,8 +190,13 @@ export default function AddApplicantModal({ isOpen, onClose }: AddApplicantModal
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                                     <Input label="Hiring Date (Batch)" type="date" value={formData.hiringDate} onChange={(v: string) => setFormData(p => ({ ...p, hiringDate: v }))} />
-                                    <Input label="IES Number" placeholder="IES-2024-XXX" value={formData.profile.iesNo} onChange={(v: string) => setFormData(p => ({ ...p, profile: { ...p.profile, iesNo: v } }))} />
                                     <Input label="Applicant Code" placeholder="APP-XXXX" value={formData.profile.applicantCode} onChange={(v: string) => setFormData(p => ({ ...p, profile: { ...p.profile, applicantCode: v } }))} />
+                                    <Select
+                                        label="School Level"
+                                        options={['Junior High School', 'Senior High School']}
+                                        value={formData.profile.schoolLevel}
+                                        onChange={(v: string) => setFormData(p => ({ ...p, profile: { ...p.profile, schoolLevel: v } }))}
+                                    />
                                     <Select
                                         label="Position Applied For"
                                         options={[...Array.from(new Set(positions.map(p => p.title))), '➕ Add Custom Position...']}
@@ -337,12 +343,22 @@ export default function AddApplicantModal({ isOpen, onClose }: AddApplicantModal
                                 <div className="flex items-center justify-between mb-6">
                                     <div className="flex items-center gap-3">
                                         <div className="h-6 w-1 bg-amber-500 rounded-full" />
-                                        <h3 className="text-base font-black text-slate-800 uppercase tracking-wider">Training <span className="text-[10px] text-slate-400 normal-case ml-2">(Record trainings with 8+ hours)</span></h3>
+                                        <h3 className="text-base font-black text-slate-800 uppercase tracking-wider">Training <span className="text-[10px] text-slate-400 normal-case ml-2">(Last 5 years and/or post-promotion)</span></h3>
                                     </div>
                                     <button onClick={addTraining} className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-600 rounded-xl font-bold text-xs hover:bg-amber-100 transition-colors">
                                         <Plus size={14} /> Add Training
                                     </button>
                                 </div>
+
+                                <div className="mb-6 p-4 bg-amber-50/60 border border-amber-100/50 rounded-2xl flex items-start gap-2.5 text-xs text-amber-800 animate-in slide-in-from-top-1 duration-300">
+                                    <div className="p-1 bg-amber-100 rounded-lg text-amber-700 mt-0.5">
+                                        <Info size={14} className="shrink-0" />
+                                    </div>
+                                    <div className="leading-relaxed font-semibold">
+                                        <strong className="font-black">Timeline Requirement:</strong> Only input relevant professional trainings (8+ hours) that took place <span className="underline decoration-amber-500/50 decoration-2 font-black text-amber-900">within five (5) years from now and newer</span> (2021 to present) <span className="font-black text-amber-900">and/or completed after the applicant's last promotion</span>.
+                                    </div>
+                                </div>
+
                                 <div className="space-y-4">
                                     {formData.professional.trainings.map((t, idx) => (
                                         <div key={idx} className="flex gap-4 items-end group">
