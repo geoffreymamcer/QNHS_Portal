@@ -53,6 +53,7 @@ export default function AddSalaryGradeModal({ isOpen, onClose }: AddSalaryGradeM
 
         setIsSaving(true);
         try {
+            const annualSalary = formData.salary * 12;
             if (isEditing && editingOriginal) {
                 await updateSalaryGrade(
                     editingOriginal.grade,
@@ -60,10 +61,10 @@ export default function AddSalaryGradeModal({ isOpen, onClose }: AddSalaryGradeM
                     formData.grade,
                     formData.step,
                     formData.position_title,
-                    formData.salary
+                    annualSalary
                 );
             } else {
-                await upsertSalaryGrade(formData.grade, formData.step, formData.position_title, formData.salary);
+                await upsertSalaryGrade(formData.grade, formData.step, formData.position_title, annualSalary);
             }
             resetForm();
             await fetchGrades();
@@ -82,7 +83,10 @@ export default function AddSalaryGradeModal({ isOpen, onClose }: AddSalaryGradeM
     };
 
     const handleEdit = (item: SalaryGrade) => {
-        setFormData({ ...item });
+        setFormData({ 
+            ...item, 
+            salary: Number((item.salary / 12).toFixed(2)) 
+        });
         setEditingOriginal({ grade: item.grade, step: item.step });
         setIsEditing(true);
         const form = document.getElementById('salary-form');
@@ -224,7 +228,7 @@ export default function AddSalaryGradeModal({ isOpen, onClose }: AddSalaryGradeM
                                             </div>
                                             <div>
                                                 <p className="text-sm font-black text-slate-900">{item.position_title} (Step {item.step})</p>
-                                                <p className="text-xs font-bold text-blue-600">₱{item.salary.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                                                <p className="text-xs font-bold text-blue-600">₱{(item.salary / 12).toLocaleString(undefined, { minimumFractionDigits: 2 })} / mo</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-1">

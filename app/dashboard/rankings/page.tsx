@@ -79,9 +79,14 @@ export default function RankingsPage() {
         if (!position) {
             position = {
                 title: posName,
+                salaryGrade: curr.salary_grade || null,
+                salary: curr.salary || null,
                 applicants: []
             };
             batch.positions.push(position);
+        } else if (!position.salaryGrade && curr.salary_grade) {
+            position.salaryGrade = curr.salary_grade;
+            position.salary = curr.salary;
         }
 
         position.applicants.push(curr);
@@ -97,7 +102,7 @@ export default function RankingsPage() {
 
     const getQualificationStandards = (pos: string) => {
         const title = pos.toLowerCase();
-        
+
         // Baseline for Teacher III (as requested)
         const commonTS = {
             education: "Bachelor’s degree; or bachelor’s degree in relevant subjects, or learning area with atleast 18 professional units in Education",
@@ -152,16 +157,35 @@ export default function RankingsPage() {
             return;
         }
 
-        // Find salary info for this position by matching title string
-        const salaryInfo = salaryGrades.find(sg => 
-            sg.position_title?.toLowerCase() === pos.title.toLowerCase()
-        );
+        // 1. Get salary info from position object (fetched from database via foreign keys)
+        let grade = pos.salaryGrade;
+        let salary = pos.salary;
+
+        // 2. Fallback to salaryGrades array if not resolved directly on the position group
+        if (!grade || !salary) {
+            const fallback = salaryGrades.find(sg => 
+                sg.position_title?.toLowerCase() === pos.title.toLowerCase() ||
+                (sg as any).title?.toLowerCase() === pos.title.toLowerCase()
+            );
+            if (fallback) {
+                grade = fallback.grade;
+                salary = fallback.salary;
+            }
+        }
+
+        // 3. Determine monthly salary (if database stored annual, divide by 12)
+        let monthlyValue = salary || 0;
+        if (monthlyValue > 100000) {
+            monthlyValue = monthlyValue / 12;
+        }
 
         generateIERPDF({
             hiringDate: batch.hiringDate,
             position: pos.title,
-            salaryGrade: salaryInfo ? `${salaryInfo.grade}` : 'To be determined',
-            monthlySalary: salaryInfo ? `PHP ${salaryInfo.salary.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : 'PHP 0.00',
+            salaryGrade: grade ? `${grade}` : 'To be determined',
+            monthlySalary: monthlyValue > 0 
+                ? `PHP ${monthlyValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}` 
+                : 'PHP 0.00',
             qs: getQualificationStandards(pos.title),
             applicants: pos.applicants
         }, action);
@@ -179,7 +203,13 @@ export default function RankingsPage() {
                 </div>
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={() => setIsSalaryModalOpen(true)}
+                        onClick={() => {
+                            if (!isAdmin) {
+                                router.push('/login');
+                            } else {
+                                setIsSalaryModalOpen(true);
+                            }
+                        }}
                         className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl font-bold shadow-sm hover:bg-slate-50 hover:-translate-y-0.5 transition-all active:scale-95 whitespace-nowrap"
                     >
                         <DollarSign size={20} className="text-blue-600" />
@@ -190,7 +220,7 @@ export default function RankingsPage() {
                         className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-600/20 hover:bg-blue-700 hover:-translate-y-0.5 transition-all active:scale-95 whitespace-nowrap"
                     >
                         <Plus size={20} />
-                        New Evaluation
+                        New Applicant
                     </button>
                 </div>
             </div>
@@ -347,11 +377,13 @@ export default function RankingsPage() {
                 setIsApplicantModalOpen(false);
                 fetchData();
             }} />
-            
-            <AddSalaryGradeModal isOpen={isSalaryModalOpen} onClose={() => {
-                setIsSalaryModalOpen(false);
-                fetchSalaryGrades(); // Refresh salary grade lookup
-            }} />
+
+            {isAdmin && (
+                <AddSalaryGradeModal isOpen={isSalaryModalOpen} onClose={() => {
+                    setIsSalaryModalOpen(false);
+                    fetchSalaryGrades(); // Refresh salary grade lookup
+                }} />
+            )}
         </div>
     );
 }

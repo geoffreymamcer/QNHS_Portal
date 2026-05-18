@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, User, Heart, GraduationCap, Plus, Trash2, ChevronRight, ChevronLeft, Save } from 'lucide-react';
-import { createApplicant, getPositions } from './actions';
+import { createApplicant, getPositions, checkIsAdmin } from './actions';
 
 interface AddApplicantModalProps {
     isOpen: boolean;
@@ -14,6 +14,7 @@ type FormSection = 'profile' | 'background' | 'professional' | 'evaluation';
 export default function AddApplicantModal({ isOpen, onClose }: AddApplicantModalProps) {
     const [activeSection, setActiveSection] = useState<FormSection>('profile');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
 
     const [positions, setPositions] = useState<{ id: string, title: string }[]>([]);
     const [isCustomPosition, setIsCustomPosition] = useState(false);
@@ -27,9 +28,20 @@ export default function AddApplicantModal({ isOpen, onClose }: AddApplicantModal
                 console.error('Error loading positions:', err);
             }
         };
+        const checkAdmin = async () => {
+            try {
+                const admin = await checkIsAdmin();
+                setIsAdmin(admin);
+            } catch (err) {
+                console.error('Error checking admin status:', err);
+                setIsAdmin(false);
+            }
+        };
         if (isOpen) {
             loadPositions();
+            checkAdmin();
             setIsCustomPosition(false);
+            setActiveSection('profile');
         }
     }, [isOpen]);
 
@@ -111,7 +123,7 @@ export default function AddApplicantModal({ isOpen, onClose }: AddApplicantModal
         setIsSubmitting(true);
         try {
             await createApplicant(formData);
-            alert('Initial Evaluation Result successfully registered!');
+            alert(isAdmin ? 'Initial Evaluation Result successfully registered!' : 'Your application was successfully submitted!');
             onClose();
         } catch (error: any) {
             alert(`Error: ${error.message}`);
@@ -132,8 +144,8 @@ export default function AddApplicantModal({ isOpen, onClose }: AddApplicantModal
                             <Plus size={24} strokeWidth={3} />
                         </div>
                         <div>
-                            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Register Evaluation</h2>
-                            <p className="text-sm text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">Initial Assessment Result</p>
+                            <h2 className="text-2xl font-black text-slate-900 tracking-tight">New Applicant Information</h2>
+                            <p className="text-sm text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">Fill all the informations below</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-3 hover:bg-slate-100 rounded-2xl transition-all text-slate-400">
@@ -144,11 +156,11 @@ export default function AddApplicantModal({ isOpen, onClose }: AddApplicantModal
                 {/* Stepper Navigation */}
                 <div className="px-8 py-4 bg-slate-50/50 border-b border-slate-100 flex items-center gap-2 overflow-x-auto no-scrollbar">
                     {[
-                        { id: 'profile', label: '1. Applicant Profile', icon: <User size={18} /> },
+                        { id: 'profile', label: '1. Profile', icon: <User size={18} /> },
                         { id: 'background', label: '2. Contact & Addresses', icon: <Heart size={18} /> },
                         { id: 'professional', label: '3. Professional Background', icon: <GraduationCap size={18} /> },
-                        { id: 'evaluation', label: '4. Evaluation Result', icon: <Save size={18} /> }
-                    ].map((step, idx) => (
+                        ...(isAdmin ? [{ id: 'evaluation', label: '4. Evaluation Result', icon: <Save size={18} /> }] : [])
+                    ].map((step, idx, arr) => (
                         <React.Fragment key={step.id}>
                             <button
                                 onClick={() => setActiveSection(step.id as FormSection)}
@@ -160,7 +172,7 @@ export default function AddApplicantModal({ isOpen, onClose }: AddApplicantModal
                                 {step.icon}
                                 {step.label}
                             </button>
-                            {idx < 3 && <div className="h-px w-8 bg-slate-200" />}
+                            {idx < arr.length - 1 && <div className="h-px w-8 bg-slate-200" />}
                         </React.Fragment>
                     ))}
                 </div>
@@ -179,51 +191,51 @@ export default function AddApplicantModal({ isOpen, onClose }: AddApplicantModal
                                     <Input label="Hiring Date (Batch)" type="date" value={formData.hiringDate} onChange={(v: string) => setFormData(p => ({ ...p, hiringDate: v }))} />
                                     <Input label="IES Number" placeholder="IES-2024-XXX" value={formData.profile.iesNo} onChange={(v: string) => setFormData(p => ({ ...p, profile: { ...p.profile, iesNo: v } }))} />
                                     <Input label="Applicant Code" placeholder="APP-XXXX" value={formData.profile.applicantCode} onChange={(v: string) => setFormData(p => ({ ...p, profile: { ...p.profile, applicantCode: v } }))} />
-                                    <Select 
-                                        label="Position Applied For" 
-                                        options={[...Array.from(new Set(positions.map(p => p.title))), '➕ Add Custom Position...']} 
-                                        value={isCustomPosition ? '➕ Add Custom Position...' : formData.profile.appliedPosition} 
+                                    <Select
+                                        label="Position Applied For"
+                                        options={[...Array.from(new Set(positions.map(p => p.title))), '➕ Add Custom Position...']}
+                                        value={isCustomPosition ? '➕ Add Custom Position...' : formData.profile.appliedPosition}
                                         onChange={(v: string) => {
                                             if (v === '➕ Add Custom Position...') {
                                                 setIsCustomPosition(true);
-                                                setFormData(p => ({ 
-                                                    ...p, 
-                                                    profile: { 
-                                                        ...p.profile, 
-                                                        appliedPosition: '', 
-                                                        appliedPositionId: '' 
-                                                    } 
+                                                setFormData(p => ({
+                                                    ...p,
+                                                    profile: {
+                                                        ...p.profile,
+                                                        appliedPosition: '',
+                                                        appliedPositionId: ''
+                                                    }
                                                 }));
                                             } else {
                                                 setIsCustomPosition(false);
                                                 const selected = positions.find(p => p.title === v);
-                                                setFormData(p => ({ 
-                                                    ...p, 
-                                                    profile: { 
-                                                        ...p.profile, 
+                                                setFormData(p => ({
+                                                    ...p,
+                                                    profile: {
+                                                        ...p.profile,
                                                         appliedPosition: v,
                                                         appliedPositionId: selected ? selected.id : ''
-                                                    } 
+                                                    }
                                                 }));
                                             }
-                                        }} 
+                                        }}
                                     />
                                 </div>
 
                                 {isCustomPosition && (
                                     <div className="p-5 bg-blue-50/50 border border-blue-100 rounded-2xl mb-8 animate-in slide-in-from-top-2 duration-300">
-                                        <Input 
-                                            label="Specify Custom Position Applied For" 
-                                            placeholder="Enter position title manually (e.g. SPET Teacher I)" 
-                                            value={formData.profile.appliedPosition} 
-                                            onChange={(v: string) => setFormData(p => ({ 
-                                                ...p, 
-                                                profile: { 
-                                                    ...p.profile, 
+                                        <Input
+                                            label="Specify Custom Position Applied For"
+                                            placeholder="Enter position title manually (e.g. SPET Teacher I)"
+                                            value={formData.profile.appliedPosition}
+                                            onChange={(v: string) => setFormData(p => ({
+                                                ...p,
+                                                profile: {
+                                                    ...p.profile,
                                                     appliedPosition: v,
                                                     appliedPositionId: ''
-                                                } 
-                                            }))} 
+                                                }
+                                            }))}
                                         />
                                     </div>
                                 )}
@@ -466,12 +478,12 @@ export default function AddApplicantModal({ isOpen, onClose }: AddApplicantModal
                         <button onClick={onClose} className="px-8 py-3 text-slate-400 hover:text-slate-600 transition-colors" disabled={isSubmitting}>
                             Cancel
                         </button>
-                        {activeSection !== 'evaluation' ? (
+                        {activeSection !== (isAdmin ? 'evaluation' : 'professional') ? (
                             <button
                                 onClick={() => {
                                     if (activeSection === 'profile') setActiveSection('background');
                                     else if (activeSection === 'background') setActiveSection('professional');
-                                    else if (activeSection === 'professional') setActiveSection('evaluation');
+                                    else if (activeSection === 'professional' && isAdmin) setActiveSection('evaluation');
                                 }}
                                 className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-all hover:translate-x-1"
                             >
@@ -485,10 +497,10 @@ export default function AddApplicantModal({ isOpen, onClose }: AddApplicantModal
                                     }`}
                             >
                                 {isSubmitting ? (
-                                    <>Registering...</>
+                                    <>{isAdmin ? 'Registering...' : 'Submitting...'}</>
                                 ) : (
                                     <>
-                                        <Save size={20} strokeWidth={3} /> Register Evaluation
+                                        <Save size={20} strokeWidth={3} /> {isAdmin ? 'Register Evaluation' : 'Submit Application'}
                                     </>
                                 )}
                             </button>

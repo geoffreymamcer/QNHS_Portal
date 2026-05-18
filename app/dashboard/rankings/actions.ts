@@ -114,12 +114,62 @@ export async function createApplicant(data: any) {
 export async function getApplicants() {
     const supabase = await createClient();
 
+    // Database self-healing: Automatically link any position missing a salary_grade_id
+    try {
+        const { data: unlinkedPos } = await supabase
+            .from('positions')
+            .select('id, title')
+            .is('salary_grade_id', null);
+
+        if (unlinkedPos && unlinkedPos.length > 0) {
+            const { data: sgs } = await supabase
+                .from('salary_grades')
+                .select('id, grade, step');
+
+            if (sgs && sgs.length > 0) {
+                for (const pos of unlinkedPos) {
+                    const titleLower = pos.title.toLowerCase();
+                    let targetGrade = 0;
+                    if (titleLower.includes('teacher iii')) {
+                        targetGrade = 13;
+                    } else if (titleLower.includes('teacher ii')) {
+                        targetGrade = 12;
+                    } else if (titleLower.includes('teacher i')) {
+                        targetGrade = 11;
+                    }
+
+                    if (targetGrade > 0) {
+                        // Match with step 3 (default) or step 1
+                        let matchedSg = sgs.find(sg => sg.grade === targetGrade && sg.step === 3);
+                        if (!matchedSg) {
+                            matchedSg = sgs.find(sg => sg.grade === targetGrade);
+                        }
+
+                        if (matchedSg) {
+                            await supabase
+                                .from('positions')
+                                .update({ salary_grade_id: matchedSg.id })
+                                .eq('id', pos.id);
+                            console.log(`Self-healed: Linked position "${pos.title}" (ID: ${pos.id}) to Salary Grade ${matchedSg.grade} Step ${matchedSg.step}`);
+                        }
+                    }
+                }
+            }
+        }
+    } catch (healError) {
+        console.error('Database self-healing error:', healError);
+    }
+
     const { data, error } = await supabase
         .from('applicants')
         .select(`
             *,
             positions:applied_position_id (
-                title
+                title,
+                salary_grades (
+                    grade,
+                    salary
+                )
             )
         `)
         .order('hiring_date', { ascending: false })
@@ -150,6 +200,8 @@ export async function getApplicants() {
         applicant_code: item.applicant_code,
         hiring_date: item.hiring_date,
         applied_position: item.positions?.title || 'Unspecified Position',
+        salary_grade: (item.positions as any)?.salary_grades?.grade || null,
+        salary: (item.positions as any)?.salary_grades?.salary || null,
         
         // Profile mapping
         firstname: item.first_name,
