@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, User, Heart, GraduationCap, Plus, Trash2, ChevronRight, ChevronLeft, Save } from 'lucide-react';
-import { createApplicant } from './actions';
+import { createApplicant, getPositions } from './actions';
 
 interface AddApplicantModalProps {
     isOpen: boolean;
@@ -15,6 +15,24 @@ export default function AddApplicantModal({ isOpen, onClose }: AddApplicantModal
     const [activeSection, setActiveSection] = useState<FormSection>('profile');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const [positions, setPositions] = useState<{ id: string, title: string }[]>([]);
+    const [isCustomPosition, setIsCustomPosition] = useState(false);
+
+    useEffect(() => {
+        const loadPositions = async () => {
+            try {
+                const data = await getPositions();
+                setPositions(data);
+            } catch (err) {
+                console.error('Error loading positions:', err);
+            }
+        };
+        if (isOpen) {
+            loadPositions();
+            setIsCustomPosition(false);
+        }
+    }, [isOpen]);
+
     // Form State
     const [formData, setFormData] = useState({
         hiringDate: new Date().toISOString().split('T')[0],
@@ -22,6 +40,7 @@ export default function AddApplicantModal({ isOpen, onClose }: AddApplicantModal
             iesNo: '',
             applicantCode: '',
             appliedPosition: '',
+            appliedPositionId: '',
             surname: '', firstname: '', middlename: '', extension: '',
             age: '', sex: '', civilStatus: '',
             religion: '', disability: '', ethnicGroup: ''
@@ -160,8 +179,54 @@ export default function AddApplicantModal({ isOpen, onClose }: AddApplicantModal
                                     <Input label="Hiring Date (Batch)" type="date" value={formData.hiringDate} onChange={(v: string) => setFormData(p => ({ ...p, hiringDate: v }))} />
                                     <Input label="IES Number" placeholder="IES-2024-XXX" value={formData.profile.iesNo} onChange={(v: string) => setFormData(p => ({ ...p, profile: { ...p.profile, iesNo: v } }))} />
                                     <Input label="Applicant Code" placeholder="APP-XXXX" value={formData.profile.applicantCode} onChange={(v: string) => setFormData(p => ({ ...p, profile: { ...p.profile, applicantCode: v } }))} />
-                                    <Input label="Position Applied For" placeholder="e.g. Teacher I" value={formData.profile.appliedPosition} onChange={(v: string) => setFormData(p => ({ ...p, profile: { ...p.profile, appliedPosition: v } }))} />
+                                    <Select 
+                                        label="Position Applied For" 
+                                        options={[...Array.from(new Set(positions.map(p => p.title))), '➕ Add Custom Position...']} 
+                                        value={isCustomPosition ? '➕ Add Custom Position...' : formData.profile.appliedPosition} 
+                                        onChange={(v: string) => {
+                                            if (v === '➕ Add Custom Position...') {
+                                                setIsCustomPosition(true);
+                                                setFormData(p => ({ 
+                                                    ...p, 
+                                                    profile: { 
+                                                        ...p.profile, 
+                                                        appliedPosition: '', 
+                                                        appliedPositionId: '' 
+                                                    } 
+                                                }));
+                                            } else {
+                                                setIsCustomPosition(false);
+                                                const selected = positions.find(p => p.title === v);
+                                                setFormData(p => ({ 
+                                                    ...p, 
+                                                    profile: { 
+                                                        ...p.profile, 
+                                                        appliedPosition: v,
+                                                        appliedPositionId: selected ? selected.id : ''
+                                                    } 
+                                                }));
+                                            }
+                                        }} 
+                                    />
                                 </div>
+
+                                {isCustomPosition && (
+                                    <div className="p-5 bg-blue-50/50 border border-blue-100 rounded-2xl mb-8 animate-in slide-in-from-top-2 duration-300">
+                                        <Input 
+                                            label="Specify Custom Position Applied For" 
+                                            placeholder="Enter position title manually (e.g. SPET Teacher I)" 
+                                            value={formData.profile.appliedPosition} 
+                                            onChange={(v: string) => setFormData(p => ({ 
+                                                ...p, 
+                                                profile: { 
+                                                    ...p.profile, 
+                                                    appliedPosition: v,
+                                                    appliedPositionId: ''
+                                                } 
+                                            }))} 
+                                        />
+                                    </div>
+                                )}
 
                                 <div className="flex items-center gap-3 mb-6">
                                     <div className="h-6 w-1 bg-blue-600 rounded-full" />

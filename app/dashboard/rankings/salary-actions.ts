@@ -9,7 +9,7 @@ export async function getSalaryGrades() {
         .from('salary_grades')
         .select('*')
         .order('grade', { ascending: true })
-        .order('position_title', { ascending: true });
+        .order('step', { ascending: true });
 
     if (error) {
         console.error('Error fetching salary grades:', error);
@@ -19,16 +19,17 @@ export async function getSalaryGrades() {
     return data;
 }
 
-export async function upsertSalaryGrade(grade: number, position_title: string, salary: number) {
+export async function upsertSalaryGrade(grade: number, step: number, position_title: string, salary: number) {
     const supabase = await createClient();
     const { data, error } = await supabase
         .from('salary_grades')
         .upsert({
             grade,
+            step,
             position_title,
             salary,
             updated_at: new Date().toISOString()
-        })
+        }, { onConflict: 'grade,step' })
         .select()
         .single();
 
@@ -43,37 +44,38 @@ export async function upsertSalaryGrade(grade: number, position_title: string, s
 
 export async function updateSalaryGrade(
     oldGrade: number,
-    oldTitle: string,
+    oldStep: number,
     newGrade: number,
+    newStep: number,
     newTitle: string,
     salary: number
 ) {
     const supabase = await createClient();
 
     // If PK changed, we need to delete old and insert new to avoid key conflicts/orphans
-    if (oldGrade !== newGrade || oldTitle !== newTitle) {
+    if (oldGrade !== newGrade || oldStep !== newStep) {
         // Delete old
         const { error: delError } = await supabase
             .from('salary_grades')
             .delete()
-            .match({ grade: oldGrade, position_title: oldTitle });
+            .match({ grade: oldGrade, step: oldStep });
 
         if (delError) throw new Error(delError.message);
 
         // Insert new
-        return upsertSalaryGrade(newGrade, newTitle, salary);
+        return upsertSalaryGrade(newGrade, newStep, newTitle, salary);
     }
 
     // Otherwise just upsert
-    return upsertSalaryGrade(newGrade, newTitle, salary);
+    return upsertSalaryGrade(newGrade, newStep, newTitle, salary);
 }
 
-export async function deleteSalaryGrade(grade: number, position_title: string) {
+export async function deleteSalaryGrade(grade: number, step: number) {
     const supabase = await createClient();
     const { error } = await supabase
         .from('salary_grades')
         .delete()
-        .match({ grade, position_title });
+        .match({ grade, step });
 
     if (error) {
         console.error('Error deleting salary grade:', error);

@@ -15,7 +15,7 @@ interface ViewEmployeeModalProps {
     employee: any;
 }
 
-type TabType = 'general' | 'pds' | 'family' | 'education' | 'eligibility';
+type TabType = 'general' | 'pds' | 'family' | 'education' | 'eligibility' | 'experience';
 
 export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmployeeModalProps) {
     const [activeTab, setActiveTab] = useState<TabType>('general');
@@ -56,7 +56,8 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
         return age;
     };
 
-    const age = calculateAge(employee.birthdate);
+    const displayData = fullData || employee;
+    const age = calculateAge(displayData.birthdate);
     const isRetiring = age >= 60;
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
@@ -73,6 +74,7 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
         { id: 'family', label: 'Family', icon: Users },
         { id: 'education', label: 'Education', icon: GraduationCap },
         { id: 'eligibility', label: 'Eligibility', icon: Award },
+        { id: 'experience', label: 'Experience', icon: Briefcase },
     ];
 
     return (
@@ -98,10 +100,10 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
                     <div className="flex items-end gap-8">
                         <div className="h-32 w-32 rounded-3xl bg-white p-1.5 shadow-2xl ring-1 ring-slate-200 overflow-hidden shrink-0">
                             <div className="h-full w-full rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-700 font-bold text-4xl overflow-hidden">
-                                {employee.photo_url ? (
-                                    <img src={employee.photo_url} alt={employee.first_name} className="w-full h-full object-cover" />
+                                {displayData.photo_url ? (
+                                    <img src={displayData.photo_url} alt={displayData.first_name} className="w-full h-full object-cover" />
                                 ) : (
-                                    (employee.first_name?.[0] || '') + (employee.last_name?.[0] || '')
+                                    (displayData.first_name?.[0] || '') + (displayData.last_name?.[0] || '')
                                 )}
                             </div>
                         </div>
@@ -109,18 +111,18 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
                         <div className="mb-2 space-y-1">
                             <div className="flex items-center gap-3 flex-wrap">
                                 <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight">
-                                    {employee.last_name}, {employee.first_name} {employee.middle_name || ''}
+                                    {displayData.last_name}, {displayData.first_name} {displayData.middle_name || ''}
                                 </h2>
                                 <div className="flex gap-2">
                                     {isRetiring && <span className="bg-amber-100 text-amber-700 text-[10px] font-black px-2.5 py-1 rounded-full border border-amber-200">RETIRING</span>}
-                                    {employee.is_deceased && <span className="bg-red-100 text-red-700 text-[10px] font-black px-2.5 py-1 rounded-full border border-red-200">DECEASED</span>}
-                                    <span className="bg-blue-100 text-blue-700 text-[10px] font-black px-2.5 py-1 rounded-full border border-blue-200 uppercase">{employee.status}</span>
+                                    {displayData.is_deceased && <span className="bg-red-100 text-red-700 text-[10px] font-black px-2.5 py-1 rounded-full border border-red-200">DECEASED</span>}
+                                    <span className="bg-blue-100 text-blue-700 text-[10px] font-black px-2.5 py-1 rounded-full border border-blue-200 uppercase">{displayData.status}</span>
                                 </div>
                             </div>
                             <p className="text-lg font-bold text-slate-500 flex items-center gap-2">
-                                {employee.position_title}
+                                {displayData.position_title}
                                 <span className="h-1.5 w-1.5 rounded-full bg-slate-300" />
-                                <span className="text-blue-600">{employee.department}</span>
+                                <span className="text-blue-600">{displayData.department}</span>
                             </p>
                         </div>
                     </div>
@@ -156,19 +158,19 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <div className="p-5 bg-slate-50 rounded-[1.5rem] border border-slate-100">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Item Number</p>
-                                    <p className="text-sm font-bold text-slate-700 font-mono tracking-tighter truncate" title={employee.item_number}>{employee.item_number || 'N/A'}</p>
+                                    <p className="text-sm font-bold text-slate-700 font-mono tracking-tighter truncate" title={displayData.item_number}>{displayData.item_number || 'N/A'}</p>
                                 </div>
                                 <div className="p-5 bg-slate-50 rounded-[1.5rem] border border-slate-100">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Salary Grade / Step</p>
-                                    <p className="text-sm font-bold text-slate-700">SG {employee.salary_grade || '??'} - Step {employee.step || '?'}</p>
+                                    <p className="text-sm font-bold text-slate-700">SG {displayData.salary_grade || '??'} - Step {displayData.step || '?'}</p>
                                 </div>
                                 <div className="p-5 bg-slate-50 rounded-[1.5rem] border border-slate-100">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Classification</p>
-                                    <p className="text-sm font-bold text-slate-700">{employee.classification}</p>
+                                    <p className="text-sm font-bold text-slate-700">{displayData.classification}</p>
                                 </div>
                                 <div className="p-5 bg-slate-50 rounded-[1.5rem] border border-slate-100">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Level / Station</p>
-                                    <p className="text-sm font-bold text-slate-700">{employee.level} Division</p>
+                                    <p className="text-sm font-bold text-slate-700">{displayData.level} Division</p>
                                 </div>
                             </div>
 
@@ -183,17 +185,17 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
                                             <div className="p-4 bg-blue-50/30 rounded-2xl border border-blue-50">
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase">Birthdate & Age</p>
                                                 <p className="text-sm font-semibold text-slate-700">
-                                                    {formatDate(employee.birthdate)}
+                                                    {formatDate(displayData.birthdate)}
                                                     <span className="text-slate-400 ml-2">({age} y/o)</span>
                                                 </p>
                                             </div>
                                             <div className="p-4 bg-blue-50/30 rounded-2xl border border-blue-50">
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase">Sex / Gender</p>
-                                                <p className="text-sm font-semibold text-slate-700">{employee.sex || 'N/A'}</p>
+                                                <p className="text-sm font-semibold text-slate-700">{displayData.sex || 'N/A'}</p>
                                             </div>
                                             <div className="p-4 bg-blue-50/30 rounded-2xl border border-blue-50">
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase">TIN Number</p>
-                                                <p className="text-sm font-semibold text-slate-700 font-mono tracking-wider">{employee.tin || 'N/A'}</p>
+                                                <p className="text-sm font-semibold text-slate-700 font-mono tracking-wider">{displayData.tin || 'N/A'}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -205,12 +207,12 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
                                         <div className="space-y-4 px-1">
                                             <div className="p-4 bg-emerald-50/30 rounded-2xl border border-emerald-50">
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase">Main Record</p>
-                                                <p className="text-sm font-semibold text-slate-700 mt-1">{employee.civil_service_eligibility || 'None Stated'}</p>
+                                                <p className="text-sm font-semibold text-slate-700 mt-1">{displayData.civil_service_eligibility || 'None Stated'}</p>
                                             </div>
                                             <div className="p-4 bg-emerald-50/30 rounded-2xl border border-emerald-50">
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase">License Expiration</p>
                                                 <p className="text-sm font-semibold text-slate-700 mt-1">
-                                                    {formatDate(employee.license_expiration_date)}
+                                                    {formatDate(displayData.license_expiration_date)}
                                                 </p>
                                             </div>
                                         </div>
@@ -226,11 +228,11 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
                                         <div className="space-y-4 px-1">
                                             <div className="p-5 bg-amber-50/30 rounded-3xl border border-amber-50">
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Annual (Authorized)</p>
-                                                <p className="text-xl font-black text-slate-800">{employee.authorized_salary ? formatCurrency(employee.authorized_salary) : '₱ 0.00'}</p>
+                                                <p className="text-xl font-black text-slate-800">{displayData.authorized_salary ? formatCurrency(displayData.authorized_salary) : '₱ 0.00'}</p>
                                             </div>
                                             <div className="p-5 bg-emerald-50/30 rounded-3xl border border-emerald-50">
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Annual (Actual)</p>
-                                                <p className="text-xl font-black text-emerald-700">{employee.actual_salary ? formatCurrency(employee.actual_salary) : '₱ 0.00'}</p>
+                                                <p className="text-xl font-black text-emerald-700">{displayData.actual_salary ? formatCurrency(displayData.actual_salary) : '₱ 0.00'}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -243,16 +245,16 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="p-4 bg-indigo-50/30 rounded-2xl border border-indigo-50">
                                                     <p className="text-[10px] font-bold text-slate-400 uppercase">Area Code</p>
-                                                    <p className="text-sm font-semibold text-slate-700">{employee.area_code || 'N/A'}</p>
+                                                    <p className="text-sm font-semibold text-slate-700">{displayData.area_code || 'N/A'}</p>
                                                 </div>
                                                 <div className="p-4 bg-indigo-50/30 rounded-2xl border border-indigo-50">
                                                     <p className="text-[10px] font-bold text-slate-400 uppercase">Area Type</p>
-                                                    <p className="text-sm font-semibold text-slate-700">{employee.area_type || 'N/A'}</p>
+                                                    <p className="text-sm font-semibold text-slate-700">{displayData.area_type || 'N/A'}</p>
                                                 </div>
                                             </div>
                                             <div className="p-4 bg-indigo-50/30 rounded-2xl border border-indigo-50">
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase">P/P/A Attribution</p>
-                                                <p className="text-sm font-semibold text-slate-700 italic">{employee.ppa_attribution || 'N/A'}</p>
+                                                <p className="text-sm font-semibold text-slate-700 italic">{displayData.ppa_attribution || 'N/A'}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -269,22 +271,22 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
                                         <div className="relative pl-10">
                                             <div className="absolute left-0 top-1 w-5 h-5 rounded-full bg-blue-500 ring-4 ring-blue-50" />
                                             <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Original Appointment</p>
-                                            <p className="text-sm font-bold text-slate-700 mt-0.5">{formatDate(employee.original_appointment_date)}</p>
+                                            <p className="text-sm font-bold text-slate-700 mt-0.5">{formatDate(displayData.original_appointment_date)}</p>
                                         </div>
 
                                         <div className="relative pl-10">
                                             <div className="absolute left-0 top-1 w-5 h-5 rounded-full bg-emerald-500 ring-4 ring-emerald-50" />
                                             <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Last Promotion</p>
-                                            <p className="text-sm font-bold text-slate-700 mt-0.5">{formatDate(employee.last_promotion_date)}</p>
+                                            <p className="text-sm font-bold text-slate-700 mt-0.5">{formatDate(displayData.last_promotion_date)}</p>
                                         </div>
 
-                                        {(employee.retirement_date || employee.resigned_date) && (
+                                        {(displayData.retirement_date || displayData.resigned_date) && (
                                             <div className="relative pl-10">
                                                 <div className="absolute left-0 top-1 w-5 h-5 rounded-full bg-red-500 ring-4 ring-red-50" />
                                                 <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">Separation Schedule</p>
                                                 <p className="text-sm font-bold text-red-700 mt-0.5 capitalize">
-                                                    {employee.retirement_date ? `Retired: ${formatDate(employee.retirement_date)}` : ''}
-                                                    {employee.resigned_date ? `Resigned: ${formatDate(employee.resigned_date)}` : ''}
+                                                    {displayData.retirement_date ? `Retired: ${formatDate(displayData.retirement_date)}` : ''}
+                                                    {displayData.resigned_date ? `Resigned: ${formatDate(displayData.resigned_date)}` : ''}
                                                 </p>
                                             </div>
                                         )}
@@ -565,6 +567,54 @@ export default function ViewEmployeeModal({ isOpen, onClose, employee }: ViewEmp
                                     <div className="py-20 border-2 border-dashed border-slate-100 rounded-[3rem] flex flex-col items-center justify-center text-slate-300">
                                         <Award size={48} className="mb-4 opacity-20" />
                                         <p className="text-sm font-bold uppercase tracking-widest italic">No eligibility records recorded in PDS.</p>
+                                    </div>
+                                )}
+                            </section>
+                        </div>
+                    )}
+
+                    {activeTab === 'experience' && (
+                        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+                            <section className="space-y-8">
+                                <h3 className="text-xs font-black text-blue-600 uppercase tracking-widest flex items-center gap-2">
+                                    <Briefcase size={14} /> Work Experience History
+                                </h3>
+                                {displayData.workExperience?.length > 0 ? (
+                                    <div className="space-y-6">
+                                        {displayData.workExperience.map((exp: any, idx: number) => (
+                                            <div key={idx} className="bg-slate-50/50 p-8 rounded-[2.5rem] border border-slate-100 hover:bg-white hover:shadow-xl hover:shadow-blue-900/5 transition-all group">
+                                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-[10px] font-black text-blue-500 uppercase bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
+                                                                {formatDate(exp.from)} — {exp.to ? formatDate(exp.to) : 'Present'}
+                                                            </span>
+                                                            {exp.isGovernment === 'Yes' && (
+                                                                <span className="text-[10px] font-black text-emerald-600 uppercase bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100 flex items-center gap-1">
+                                                                    <CheckCircle2 size={10} /> Government Service
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <h4 className="text-xl font-black text-slate-800 uppercase leading-tight group-hover:text-blue-600 transition-colors">{exp.positionTitle}</h4>
+                                                        <p className="text-sm font-bold text-slate-500 flex items-center gap-2">
+                                                            <MapPin size={14} className="text-slate-300" />
+                                                            {exp.department}
+                                                        </p>
+                                                    </div>
+                                                    <div className="md:text-right shrink-0">
+                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status of Appointment</p>
+                                                        <p className="text-sm font-black text-slate-700 bg-white px-4 py-2 rounded-xl border border-slate-200 inline-block">
+                                                            {exp.status || 'N/A'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="py-24 border-2 border-dashed border-slate-100 rounded-[3rem] flex flex-col items-center justify-center text-slate-300 space-y-3">
+                                        <Briefcase size={48} className="opacity-10" />
+                                        <p className="text-sm font-black uppercase tracking-[0.2em] italic opacity-40">No work experience clusters recorded</p>
                                     </div>
                                 )}
                             </section>

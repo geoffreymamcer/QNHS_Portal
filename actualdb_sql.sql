@@ -220,3 +220,18 @@ create table public.salary_grades (
   constraint salary_grades_pkey primary key (id),
   constraint unique_grade_step unique (grade, step)
 ) TABLESPACE pg_default;
+
+create table public.employee_work_experience (
+  id uuid not null default gen_random_uuid (),
+  employee_id uuid not null,
+  inclusive_date_from date null,
+  inclusive_date_to date null,
+  position_title text not null,
+  department_agency_company text not null,
+  status_of_appointment text null,
+  is_government_service boolean null default false,
+  created_at timestamp with time zone null default now(),
+  updated_at timestamp with time zone null default now(),
+  constraint employee_work_experience_pkey primary key (id),
+  constraint employee_work_experience_employee_id_fkey foreign KEY (employee_id) references employees (id) on delete CASCADE
+) TABLESPACE pg_default;

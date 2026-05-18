@@ -6,6 +6,7 @@ import { getSalaryGrades, upsertSalaryGrade, deleteSalaryGrade, updateSalaryGrad
 
 interface SalaryGrade {
     grade: number;
+    step: number;
     position_title: string;
     salary: number;
 }
@@ -20,9 +21,10 @@ export default function AddSalaryGradeModal({ isOpen, onClose }: AddSalaryGradeM
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
-    const [editingOriginal, setEditingOriginal] = useState<{ grade: number, title: string } | null>(null);
+    const [editingOriginal, setEditingOriginal] = useState<{ grade: number, step: number } | null>(null);
     const [formData, setFormData] = useState<SalaryGrade>({
         grade: 1,
+        step: 1,
         position_title: '',
         salary: 0
     });
@@ -47,20 +49,21 @@ export default function AddSalaryGradeModal({ isOpen, onClose }: AddSalaryGradeM
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.position_title || formData.salary <= 0) return;
+        if (formData.grade <= 0 || formData.step <= 0 || !formData.position_title || formData.salary <= 0) return;
 
         setIsSaving(true);
         try {
             if (isEditing && editingOriginal) {
                 await updateSalaryGrade(
                     editingOriginal.grade,
-                    editingOriginal.title,
+                    editingOriginal.step,
                     formData.grade,
+                    formData.step,
                     formData.position_title,
                     formData.salary
                 );
             } else {
-                await upsertSalaryGrade(formData.grade, formData.position_title, formData.salary);
+                await upsertSalaryGrade(formData.grade, formData.step, formData.position_title, formData.salary);
             }
             resetForm();
             await fetchGrades();
@@ -73,24 +76,24 @@ export default function AddSalaryGradeModal({ isOpen, onClose }: AddSalaryGradeM
     };
 
     const resetForm = () => {
-        setFormData({ grade: 1, position_title: '', salary: 0 });
+        setFormData({ grade: 1, step: 1, position_title: '', salary: 0 });
         setIsEditing(false);
         setEditingOriginal(null);
     };
 
     const handleEdit = (item: SalaryGrade) => {
         setFormData({ ...item });
-        setEditingOriginal({ grade: item.grade, title: item.position_title });
+        setEditingOriginal({ grade: item.grade, step: item.step });
         setIsEditing(true);
         const form = document.getElementById('salary-form');
         form?.scrollIntoView({ behavior: 'smooth' });
     };
 
-    const handleDelete = async (grade: number, title: string) => {
-        if (!confirm(`Delete salary record for ${title} (SG ${grade})?`)) return;
+    const handleDelete = async (grade: number, step: number) => {
+        if (!confirm(`Delete salary record for SG ${grade}, Step ${step}?`)) return;
 
         try {
-            await deleteSalaryGrade(grade, title);
+            await deleteSalaryGrade(grade, step);
             await fetchGrades();
         } catch (error) {
             console.error('Delete error:', error);
@@ -110,7 +113,7 @@ export default function AddSalaryGradeModal({ isOpen, onClose }: AddSalaryGradeM
                         </div>
                         <div>
                             <h2 className="text-xl font-black text-blue-950 tracking-tight">Manage Salary Grades</h2>
-                            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Pricing & Position Tiers</p>
+                            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Pricing & Step Tiers</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all">
@@ -135,7 +138,7 @@ export default function AddSalaryGradeModal({ isOpen, onClose }: AddSalaryGradeM
                                 </button>
                             )}
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Salary Grade</label>
                                 <input
@@ -144,13 +147,26 @@ export default function AddSalaryGradeModal({ isOpen, onClose }: AddSalaryGradeM
                                     max="33"
                                     required
                                     value={formData.grade}
-                                    onChange={(e) => setFormData({ ...formData, grade: parseInt(e.target.value) })}
+                                    onChange={(e) => setFormData({ ...formData, grade: parseInt(e.target.value) || 1 })}
                                     className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
                                     placeholder="SG"
                                 />
                             </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Step</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="8"
+                                    required
+                                    value={formData.step}
+                                    onChange={(e) => setFormData({ ...formData, step: parseInt(e.target.value) || 1 })}
+                                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
+                                    placeholder="Step"
+                                />
+                            </div>
                             <div className="space-y-1.5 md:col-span-2">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Position Title</label>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Position Title (For Reports)</label>
                                 <input
                                     type="text"
                                     required
@@ -160,14 +176,14 @@ export default function AddSalaryGradeModal({ isOpen, onClose }: AddSalaryGradeM
                                     placeholder="e.g. Teacher I"
                                 />
                             </div>
-                            <div className="space-y-1.5 md:col-span-2">
+                            <div className="space-y-1.5">
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Monthly Salary (PHP)</label>
                                 <input
                                     type="number"
                                     step="0.01"
                                     required
                                     value={formData.salary || ''}
-                                    onChange={(e) => setFormData({ ...formData, salary: parseFloat(e.target.value) })}
+                                    onChange={(e) => setFormData({ ...formData, salary: parseFloat(e.target.value) || 0 })}
                                     className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
                                     placeholder="0.00"
                                 />
@@ -204,10 +220,10 @@ export default function AddSalaryGradeModal({ isOpen, onClose }: AddSalaryGradeM
                                     <div key={idx} className="group flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl hover:border-blue-200 hover:shadow-md transition-all">
                                         <div className="flex items-center gap-4">
                                             <div className="h-10 w-10 flex items-center justify-center bg-blue-50 rounded-xl text-blue-600 font-black text-xs">
-                                                {item.grade}
+                                                SG {item.grade}
                                             </div>
                                             <div>
-                                                <p className="text-sm font-black text-slate-900">{item.position_title}</p>
+                                                <p className="text-sm font-black text-slate-900">{item.position_title} (Step {item.step})</p>
                                                 <p className="text-xs font-bold text-blue-600">₱{item.salary.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
                                             </div>
                                         </div>
@@ -219,7 +235,7 @@ export default function AddSalaryGradeModal({ isOpen, onClose }: AddSalaryGradeM
                                                 <Edit2 size={16} />
                                             </button>
                                             <button
-                                                onClick={() => handleDelete(item.grade, item.position_title)}
+                                                onClick={() => handleDelete(item.grade, item.step)}
                                                 className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
                                             >
                                                 <Trash2 size={16} />

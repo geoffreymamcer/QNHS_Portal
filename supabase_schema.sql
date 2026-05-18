@@ -164,6 +164,18 @@ ON positions FOR ALL
 TO authenticated
 USING (EXISTS (SELECT 1 FROM admins WHERE id = auth.uid()));
 
+DROP POLICY IF EXISTS "Public can view positions" ON positions;
+CREATE POLICY "Public can view positions"
+ON positions FOR SELECT
+TO public
+USING (true);
+
+DROP POLICY IF EXISTS "Public can insert positions" ON positions;
+CREATE POLICY "Public can insert positions"
+ON positions FOR INSERT
+TO public
+WITH CHECK (true);
+
 -- 7. Employees Policies
 DROP POLICY IF EXISTS "Admins can manage employees" ON employees;
 CREATE POLICY "Admins can manage employees"
@@ -173,23 +185,28 @@ USING (EXISTS (SELECT 1 FROM admins WHERE id = auth.uid()));
 
 -- 11. Applicants Policies
 DROP POLICY IF EXISTS "Admins can manage applicants" ON applicants;
-CREATE POLICY "Admins can manage applicants"
-ON applicants FOR ALL
-TO authenticated
-USING (EXISTS (SELECT 1 FROM admins WHERE id = auth.uid()));
+DROP POLICY IF EXISTS "Public can view applicants" ON applicants;
+DROP POLICY IF EXISTS "Public can insert applicants" ON applicants;
+
+CREATE POLICY "Public can view applicants" ON applicants
+    FOR SELECT USING (TRUE);
+
+CREATE POLICY "Public can insert applicants" ON applicants
+    FOR INSERT WITH CHECK (TRUE);
+
+CREATE POLICY "Admins can manage applicants" ON applicants
+    FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE id = auth.uid()));
 
 -- 12. Salary Grades Policies
 DROP POLICY IF EXISTS "Admins can manage salary grades" ON salary_grades;
-CREATE POLICY "Admins can manage salary grades"
-ON salary_grades FOR ALL
-TO authenticated
-USING (EXISTS (SELECT 1 FROM admins WHERE id = auth.uid()));
-
 DROP POLICY IF EXISTS "Authenticated users can view salary grades" ON salary_grades;
-CREATE POLICY "Authenticated users can view salary grades"
-ON salary_grades FOR SELECT
-TO authenticated
-USING (TRUE);
+DROP POLICY IF EXISTS "Public can view salary grades" ON salary_grades;
+
+CREATE POLICY "Public can view salary grades" ON salary_grades
+    FOR SELECT USING (TRUE);
+
+CREATE POLICY "Admins can manage salary grades" ON salary_grades
+    FOR ALL USING (EXISTS (SELECT 1 FROM public.admins WHERE id = auth.uid()));
 
 -- 8. Storage Policies
 DROP POLICY IF EXISTS "Admins can upload photos" ON storage.objects;

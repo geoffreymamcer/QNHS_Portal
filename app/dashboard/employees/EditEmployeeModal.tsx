@@ -26,7 +26,7 @@ interface EditEmployeeModalProps {
     employee: any; // Base employee data from table
 }
 
-type TabType = 'summary' | 'personal' | 'family' | 'education' | 'eligibility';
+type TabType = 'summary' | 'personal' | 'family' | 'education' | 'eligibility' | 'experience';
 
 // Helper Component for consistent Dropdown implementation
 const PdsSelect = ({ 
@@ -182,6 +182,9 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
         civilServiceEligibility: [] as {
             type: string; rating: string; date: string; licenseNumber: string; licenseValidUntil: string;
         }[],
+        workExperience: [] as {
+            from: string; to: string; positionTitle: string; department: string; status: string; isGovernment: string;
+        }[],
     });
 
     useEffect(() => {
@@ -283,6 +286,7 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
                     licenseNumber: e.license_number || '', 
                     licenseValidUntil: e.license_valid_until || ''
                 })) || [],
+                workExperience: profile.workExperience || [],
             });
         } catch (err) {
             console.error('Error fetching full profile:', err);
@@ -355,6 +359,31 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
         });
     };
 
+    const updateExperience = (index: number, field: string, value: string) => {
+        setFormData(prev => {
+            const newExp = [...prev.workExperience];
+            newExp[index] = { ...newExp[index], [field]: value };
+            return { ...prev, workExperience: newExp };
+        });
+    };
+
+    const addExperience = () => {
+        setFormData(prev => ({
+            ...prev,
+            workExperience: [
+                ...prev.workExperience,
+                { from: '', to: '', positionTitle: '', department: '', status: 'Permanent', isGovernment: 'No' }
+            ]
+        }));
+    };
+
+    const removeExperience = (index: number) => {
+        setFormData(prev => ({
+            ...prev,
+            workExperience: prev.workExperience.filter((_, i) => i !== index)
+        }));
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
@@ -382,6 +411,7 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
         { id: 'family', label: 'Family', icon: Users },
         { id: 'education', label: 'Education', icon: GraduationCap },
         { id: 'eligibility', label: 'Eligibility', icon: Award },
+        { id: 'experience', label: 'Experience', icon: Briefcase },
     ];
 
     return (
@@ -665,6 +695,49 @@ export default function EditEmployeeModal({ isOpen, onClose, employee }: EditEmp
                                                 </div>
                                             </div>
                                         ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeTab === 'experience' && (
+                                <div className="space-y-10">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3"><div className="h-1.5 w-8 bg-blue-600 rounded-full" /><h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Work Experience Chronology</h4></div>
+                                        <button onClick={addExperience} type="button" className="flex items-center gap-2 bg-blue-50 text-blue-600 px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest"><Plus size={14} /> Add Experience</button>
+                                    </div>
+                                    <div className="space-y-8">
+                                        {formData.workExperience.map((exp, i) => (
+                                            <div key={i} className="bg-slate-50/50 p-8 rounded-[2rem] border border-slate-100 relative group transition-all hover:bg-white hover:shadow-xl hover:shadow-blue-900/5">
+                                                <button onClick={() => removeExperience(i)} className="absolute top-6 right-6 p-2 text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={20} /></button>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 uppercase ml-1">Position Title</label><input value={exp.positionTitle || ''} onChange={(e) => updateExperience(i, 'positionTitle', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 text-sm outline-none shadow-sm" /></div>
+                                                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 uppercase ml-1">Department / Office</label><input value={exp.department || ''} onChange={(e) => updateExperience(i, 'department', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 text-sm outline-none shadow-sm" /></div>
+                                                </div>
+                                                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 uppercase ml-1">From</label><input type="date" value={exp.from || ''} onChange={(e) => updateExperience(i, 'from', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2 px-4 text-sm outline-none" /></div>
+                                                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 uppercase ml-1">To</label><input type="date" value={exp.to || ''} onChange={(e) => updateExperience(i, 'to', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2 px-4 text-sm outline-none" /></div>
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-[11px] font-bold text-slate-500 uppercase ml-1">Appointment Status</label>
+                                                        <select value={exp.status || 'Permanent'} onChange={(e) => updateExperience(i, 'status', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none">
+                                                            <option value="Permanent">Permanent</option><option value="Temporary">Temporary</option><option value="Contractual">Contractual</option><option value="Coterminous">Coterminous</option><option value="Job Order">Job Order</option><option value="Casual">Casual</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-[11px] font-bold text-slate-500 uppercase ml-1">Gov't Service?</label>
+                                                        <div className="flex bg-white border border-slate-200 rounded-xl p-1 h-[42px]">
+                                                            <button type="button" onClick={() => updateExperience(i, 'isGovernment', 'Yes')} className={`flex-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${exp.isGovernment === 'Yes' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:text-slate-600'}`}>Yes</button>
+                                                            <button type="button" onClick={() => updateExperience(i, 'isGovernment', 'No')} className={`flex-1 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${exp.isGovernment === 'No' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-400 hover:text-slate-600'}`}>No</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {formData.workExperience.length === 0 && (
+                                            <div className="py-20 border-2 border-dashed border-slate-100 rounded-[2.5rem] flex flex-col items-center justify-center text-slate-300">
+                                                <Briefcase size={48} className="mb-4 opacity-10" />
+                                                <p className="text-xs font-black uppercase tracking-widest opacity-40 italic">No work history entries detected</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}

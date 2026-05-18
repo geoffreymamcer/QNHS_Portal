@@ -18,12 +18,15 @@ export default async function EmployeesPage() {
                 title,
                 classification,
                 item_number,
+                area_code,
+                area_type,
                 departments (
                     name
                 ),
                 salary_grades (
                     grade,
-                    step
+                    step,
+                    salary
                 )
             )
         `)
@@ -49,14 +52,20 @@ export default async function EmployeesPage() {
 
         return {
             ...emp,
+            // Map consistent naming for the UI
+            birthdate: emp.birth_date,
+            sex: emp.gender,
             license_expiration_date: license_date,
             agency_employee_no: emp.employee_pds?.agency_employee_no || null,
-        position_title: emp.positions?.title || null,
-        department: emp.positions?.departments?.name || null,
-        classification: emp.positions?.classification || null,
-        salary_grade: emp.positions?.salary_grades?.grade || null,
-        step: emp.positions?.salary_grades?.step || null,
-        item_number: emp.positions?.item_number || null,
+            position_title: emp.positions?.title || null,
+            department: emp.positions?.departments?.name || null,
+            classification: emp.positions?.classification || null,
+            salary_grade: emp.positions?.salary_grades?.grade || null,
+            step: emp.positions?.salary_grades?.step || null,
+            item_number: emp.positions?.item_number || null,
+            authorized_salary: emp.positions?.salary_grades?.salary || null,
+            area_code: emp.positions?.area_code || null,
+            area_type: emp.positions?.area_type || null,
         };
     }) || [];
 

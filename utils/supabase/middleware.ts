@@ -31,7 +31,7 @@ export async function updateSession(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
 
     // Protect routes
-    if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
+    if (!user && request.nextUrl.pathname.startsWith('/dashboard') && !request.nextUrl.pathname.startsWith('/dashboard/rankings')) {
         const url = request.nextUrl.clone();
         url.pathname = '/login';
         url.searchParams.set('message', 'Please sign in to access the portal.');

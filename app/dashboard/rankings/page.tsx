@@ -1,24 +1,38 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Plus, Users, Search, Filter, ChevronRight, User, X, FileText, Download, DollarSign } from 'lucide-react';
 import AddApplicantModal from './AddApplicantModal';
 import AddSalaryGradeModal from './AddSalaryGradeModal'; // New Modal
-import { getApplicants } from './actions';
+import { getApplicants, checkIsAdmin } from './actions';
 import { getSalaryGrades } from './salary-actions'; // New Actions
 import { generateIERPDF } from './utils/ierPdfGenerator';
 
 export default function RankingsPage() {
+    const router = useRouter();
     const [isApplicantModalOpen, setIsApplicantModalOpen] = useState(false);
     const [isSalaryModalOpen, setIsSalaryModalOpen] = useState(false); // New State
     const [applicants, setApplicants] = useState<any[]>([]);
     const [salaryGrades, setSalaryGrades] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isAdmin, setIsAdmin] = useState(false);
 
     useEffect(() => {
         fetchData();
         fetchSalaryGrades();
+        checkAdminStatus();
     }, []);
+
+    const checkAdminStatus = async () => {
+        try {
+            const admin = await checkIsAdmin();
+            setIsAdmin(admin);
+        } catch (error) {
+            console.error('Error checking admin status:', error);
+            setIsAdmin(false);
+        }
+    };
 
     const fetchData = async () => {
         setIsLoading(true);
@@ -133,8 +147,15 @@ export default function RankingsPage() {
     };
 
     const handleGenerateReport = (batch: any, pos: any, action: 'view' | 'download') => {
-        // Find salary info for this position
-        const salaryInfo = salaryGrades.find(sg => sg.position_title.toLowerCase() === pos.title.toLowerCase());
+        if (!isAdmin) {
+            router.push('/login');
+            return;
+        }
+
+        // Find salary info for this position by matching title string
+        const salaryInfo = salaryGrades.find(sg => 
+            sg.position_title?.toLowerCase() === pos.title.toLowerCase()
+        );
 
         generateIERPDF({
             hiringDate: batch.hiringDate,

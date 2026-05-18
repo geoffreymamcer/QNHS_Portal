@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, User, Users, GraduationCap, Award, Plus, Trash2, Save, ChevronRight, ChevronLeft, MapPin, Contact, Fingerprint, Calendar, CheckCircle2, Search, PlusCircle } from 'lucide-react';
+import { X, User, Users, GraduationCap, Award, Plus, Trash2, Save, ChevronRight, ChevronLeft, MapPin, Contact, Fingerprint, Calendar, CheckCircle2, Search, PlusCircle, Briefcase } from 'lucide-react';
 import { createEmployeePds, getPdsDropdownValues } from './actions';
 import { useRouter } from 'next/navigation';
 
@@ -10,7 +10,7 @@ interface AddEmployeePdsModalProps {
     onClose: () => void;
 }
 
-type TabType = 'personal' | 'family' | 'education' | 'eligibility';
+type TabType = 'personal' | 'family' | 'education' | 'eligibility' | 'experience';
 
 // Helper Component for the requested Select implementation
 const PdsSelect = ({ 
@@ -244,6 +244,14 @@ export default function AddEmployeePdsModal({ isOpen, onClose }: AddEmployeePdsM
             licenseNumber: string;
             licenseValidUntil: string;
         }[],
+        workExperience: [] as {
+            from: string;
+            to: string;
+            positionTitle: string;
+            department: string;
+            status: string;
+            isGovernment: string;
+        }[],
     });
 
     useEffect(() => {
@@ -368,6 +376,31 @@ export default function AddEmployeePdsModal({ isOpen, onClose }: AddEmployeePdsM
         });
     };
 
+    const addExperience = () => {
+        setFormData(prev => ({
+            ...prev,
+            workExperience: [
+                ...prev.workExperience,
+                { from: '', to: '', positionTitle: '', department: '', status: '', isGovernment: 'No' }
+            ]
+        }));
+    };
+
+    const removeExperience = (index: number) => {
+        setFormData(prev => ({
+            ...prev,
+            workExperience: prev.workExperience.filter((_, i) => i !== index)
+        }));
+    };
+
+    const updateExperienceValue = (index: number, field: string, value: string) => {
+        setFormData(prev => {
+            const newExp = [...prev.workExperience];
+            newExp[index] = { ...newExp[index], [field]: value };
+            return { ...prev, workExperience: newExp };
+        });
+    };
+
     const handleSubmit = async () => {
         // Basic Validation
         if (!formData.personalInfo.lastName || !formData.personalInfo.firstName || !formData.personalInfo.gender || !formData.personalInfo.birthDate) {
@@ -399,6 +432,7 @@ export default function AddEmployeePdsModal({ isOpen, onClose }: AddEmployeePdsM
         { id: 'family', label: 'Family Background', icon: Users },
         { id: 'education', label: 'Education', icon: GraduationCap },
         { id: 'eligibility', label: 'Eligibility', icon: Award },
+        { id: 'experience', label: 'Work Experience', icon: Briefcase },
     ];
 
     return (
@@ -840,46 +874,129 @@ export default function AddEmployeePdsModal({ isOpen, onClose }: AddEmployeePdsM
                             {activeTab === 'eligibility' && (
                                 <div className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-500">
                                      <div className="flex items-center justify-between">
+                                         <div className="flex items-center gap-3">
+                                             <div className="h-1.5 w-8 bg-emerald-600 rounded-full" />
+                                             <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Civil Service Eligibility</h3>
+                                         </div>
+                                         <button onClick={addEligibility} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-5 py-2.5 rounded-xl hover:bg-emerald-100 transition-all active:scale-95 shadow-sm">
+                                             <Plus size={14} /> Add new record
+                                         </button>
+                                     </div>
+                                     <div className="space-y-6">
+                                         {formData.civilServiceEligibility.map((elig, index) => (
+                                             <div key={index} className="bg-slate-50/50 p-8 rounded-[2.5rem] border border-slate-100 space-y-6 relative group animate-in slide-in-from-top-4 duration-500 hover:bg-white hover:shadow-xl transition-all">
+                                                 <button onClick={() => removeEligibility(index)} className="absolute top-6 right-8 p-2 text-slate-300 hover:text-rose-500 transition-all opacity-0 group-hover:opacity-100">
+                                                     <Trash2 size={20} />
+                                                 </button>
+                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                                     <div className="space-y-1.5">
+                                                         <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">ELIGIBILITY TYPE</label>
+                                                         <input value={elig.type || ''} onChange={(e) => updateEligibility(index, 'type', e.target.value)} placeholder="e.g. RA 1080, BOARD, BAR" className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-emerald-600/5" />
+                                                     </div>
+                                                     <div className="space-y-1.5">
+                                                         <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">RATING (IF APPLICABLE)</label>
+                                                         <input value={elig.rating || ''} onChange={(e) => updateEligibility(index, 'rating', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-emerald-600/5 font-mono" />
+                                                     </div>
+                                                 </div>
+                                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                                     <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase tracking-tighter">DATE OF EXAM</label><input type="date" value={elig.date || ''} onChange={(e) => updateEligibility(index, 'date', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" /></div>
+                                                     <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase tracking-tighter">LICENSE NUMBER</label><input value={elig.licenseNumber || ''} onChange={(e) => updateEligibility(index, 'licenseNumber', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none font-mono tracking-widest" /></div>
+                                                     <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase tracking-tighter">VALID UNTIL</label><input type="date" value={elig.licenseValidUntil || ''} onChange={(e) => updateEligibility(index, 'licenseValidUntil', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" /></div>
+                                                 </div>
+                                             </div>
+                                         ))}
+                                         {formData.civilServiceEligibility.length === 0 && (
+                                             <div className="py-24 border-2 border-dashed border-slate-100 rounded-[3rem] flex flex-col items-center justify-center text-slate-300 space-y-3">
+                                                 <Award size={48} className="opacity-10" />
+                                                 <p className="text-sm font-black uppercase tracking-[0.2em] italic opacity-40">No CS Eligibility records</p>
+                                             </div>
+                                         )}
+                                     </div>
+                                 </div>
+                             )}
+
+                             {activeTab === 'experience' && (
+                                <div className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-500 pb-10">
+                                    <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <div className="h-1.5 w-8 bg-emerald-600 rounded-full" />
-                                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Civil Service Eligibility</h3>
+                                            <div className="h-1.5 w-8 bg-blue-600 rounded-full" />
+                                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Work Experience History</h3>
                                         </div>
-                                        <button onClick={addEligibility} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-5 py-2.5 rounded-xl hover:bg-emerald-100 transition-all active:scale-95 shadow-sm">
-                                            <Plus size={14} /> Add new record
+                                        <button onClick={addExperience} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-5 py-2.5 rounded-xl hover:bg-blue-100 transition-all active:scale-95 shadow-sm">
+                                            <Plus size={14} /> Add new experience
                                         </button>
                                     </div>
                                     <div className="space-y-6">
-                                        {formData.civilServiceEligibility.map((elig, index) => (
-                                            <div key={index} className="bg-slate-50/50 p-8 rounded-[2.5rem] border border-slate-100 space-y-6 relative group animate-in slide-in-from-top-4 duration-500 hover:bg-white hover:shadow-xl transition-all">
-                                                <button onClick={() => removeEligibility(index)} className="absolute top-6 right-8 p-2 text-slate-300 hover:text-rose-500 transition-all opacity-0 group-hover:opacity-100">
+                                        {formData.workExperience.map((exp, index) => (
+                                            <div key={index} className="bg-slate-50/50 p-8 rounded-[2.5rem] border border-slate-100 space-y-8 relative group animate-in slide-in-from-top-4 duration-500 hover:bg-white hover:shadow-xl transition-all">
+                                                <button onClick={() => removeExperience(index)} className="absolute top-6 right-8 p-2 text-slate-300 hover:text-rose-500 transition-all opacity-0 group-hover:opacity-100">
                                                     <Trash2 size={20} />
                                                 </button>
+                                                
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                                    <div className="space-y-1.5">
-                                                        <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">ELIGIBILITY TYPE</label>
-                                                        <input value={elig.type || ''} onChange={(e) => updateEligibility(index, 'type', e.target.value)} placeholder="e.g. RA 1080, BOARD, BAR" className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-emerald-600/5" />
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="space-y-1.5">
+                                                            <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase tracking-tighter flex items-center gap-1.5">
+                                                                <Calendar size={12} className="text-blue-500" /> Inclusive Date (From)
+                                                            </label>
+                                                            <input type="date" value={exp.from} onChange={(e) => updateExperienceValue(index, 'from', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5 transition-all" />
+                                                        </div>
+                                                        <div className="space-y-1.5">
+                                                            <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase tracking-tighter flex items-center gap-1.5">
+                                                                <Calendar size={12} className="text-blue-500" /> Inclusive Date (To)
+                                                            </label>
+                                                            <input type="date" value={exp.to} onChange={(e) => updateExperienceValue(index, 'to', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5 transition-all" />
+                                                        </div>
                                                     </div>
                                                     <div className="space-y-1.5">
-                                                        <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase">RATING (IF APPLICABLE)</label>
-                                                        <input value={elig.rating || ''} onChange={(e) => updateEligibility(index, 'rating', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-emerald-600/5 font-mono" />
+                                                        <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase tracking-tighter">Position Title</label>
+                                                        <input value={exp.positionTitle} onChange={(e) => updateExperienceValue(index, 'positionTitle', e.target.value)} placeholder="e.g. Senior Software Engineer" className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" />
                                                     </div>
                                                 </div>
-                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase tracking-tighter">DATE OF EXAM</label><input type="date" value={elig.date || ''} onChange={(e) => updateEligibility(index, 'date', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" /></div>
-                                                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase tracking-tighter">LICENSE NUMBER</label><input value={elig.licenseNumber || ''} onChange={(e) => updateEligibility(index, 'licenseNumber', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none font-mono tracking-widest" /></div>
-                                                    <div className="space-y-1.5"><label className="text-[11px] font-bold text-slate-500 ml-1 uppercase tracking-tighter">VALID UNTIL</label><input type="date" value={elig.licenseValidUntil || ''} onChange={(e) => updateEligibility(index, 'licenseValidUntil', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none" /></div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase tracking-tighter">Department / Agency / Office / Company</label>
+                                                        <input value={exp.department} onChange={(e) => updateExperienceValue(index, 'department', e.target.value)} placeholder="e.g. Department of Education" className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5" />
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-8">
+                                                        <div className="space-y-1.5">
+                                                            <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase tracking-tighter">Status of Appointment</label>
+                                                            <select value={exp.status} onChange={(e) => updateExperienceValue(index, 'status', e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-4 text-sm outline-none focus:ring-4 focus:ring-blue-600/5 appearance-none">
+                                                                <option value="">Select Status</option>
+                                                                <option value="Permanent">Permanent</option>
+                                                                <option value="Temporary">Temporary</option>
+                                                                <option value="Contractual">Contractual</option>
+                                                                <option value="Casual">Casual</option>
+                                                                <option value="Coterminous">Coterminous</option>
+                                                            </select>
+                                                        </div>
+                                                        <div className="space-y-1.5">
+                                                            <label className="text-[11px] font-bold text-slate-500 ml-1 uppercase tracking-tighter">Gov't Service?</label>
+                                                            <div className="flex items-center gap-4 py-2.5">
+                                                                <label className="flex items-center gap-2 cursor-pointer group">
+                                                                    <input type="radio" name={`gov-${index}`} checked={exp.isGovernment === 'Yes'} onChange={() => updateExperienceValue(index, 'isGovernment', 'Yes')} className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500" />
+                                                                    <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">Yes</span>
+                                                                </label>
+                                                                <label className="flex items-center gap-2 cursor-pointer group">
+                                                                    <input type="radio" name={`gov-${index}`} checked={exp.isGovernment === 'No'} onChange={() => updateExperienceValue(index, 'isGovernment', 'No')} className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500" />
+                                                                    <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">No</span>
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
-                                        {formData.civilServiceEligibility.length === 0 && (
+                                        {formData.workExperience.length === 0 && (
                                             <div className="py-24 border-2 border-dashed border-slate-100 rounded-[3rem] flex flex-col items-center justify-center text-slate-300 space-y-3">
-                                                <Award size={48} className="opacity-10" />
-                                                <p className="text-sm font-black uppercase tracking-[0.2em] italic opacity-40">No CS Eligibility records</p>
+                                                <Briefcase size={48} className="opacity-10" />
+                                                <p className="text-sm font-black uppercase tracking-[0.2em] italic opacity-40">No work experience records</p>
                                             </div>
                                         )}
                                     </div>
                                 </div>
-                            )}
+                             )}
                         </>
                     )}
                 </div>
@@ -893,6 +1010,7 @@ export default function AddEmployeePdsModal({ isOpen, onClose }: AddEmployeePdsM
                                     if (activeTab === 'family') setActiveTab('personal');
                                     if (activeTab === 'education') setActiveTab('family');
                                     if (activeTab === 'eligibility') setActiveTab('education');
+                                    if (activeTab === 'experience') setActiveTab('eligibility');
                                 }}
                                 className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 sm:px-8 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest text-slate-500 hover:text-slate-800 hover:bg-white transition-all border border-transparent hover:border-slate-200 shadow-sm shadow-blue-950/5"
                             >
@@ -903,12 +1021,13 @@ export default function AddEmployeePdsModal({ isOpen, onClose }: AddEmployeePdsM
                     </div>
                     
                     <div className="w-full sm:w-auto">
-                        {activeTab !== 'eligibility' ? (
+                        {activeTab !== 'experience' ? (
                             <button 
                                 onClick={() => {
                                     if (activeTab === 'personal') setActiveTab('family');
                                     else if (activeTab === 'family') setActiveTab('education');
                                     else if (activeTab === 'education') setActiveTab('eligibility');
+                                    else if (activeTab === 'eligibility') setActiveTab('experience');
                                 }}
                                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-10 sm:px-14 py-3 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] text-white bg-blue-600 hover:bg-blue-700 shadow-2xl shadow-blue-500/20 transition-all active:scale-95"
                             >

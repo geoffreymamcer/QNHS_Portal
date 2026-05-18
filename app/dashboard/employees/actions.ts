@@ -37,8 +37,8 @@ export async function createEmployee(formData: FormData) {
         first_name: formData.get('firstName') as string,
         middle_name: formData.get('middleName') as string,
         last_name: formData.get('lastName') as string,
-        sex: formData.get('gender') as string,
-        birthdate: formData.get('birthdate') as string || null,
+        gender: formData.get('gender') as string,
+        birth_date: formData.get('birthdate') as string || null,
         tin: formData.get('tin') as string,
         civil_service_eligibility: formData.get('eligibility') as string,
         is_deceased: formData.get('isDeceased') === 'true',
@@ -107,8 +107,8 @@ export async function updateEmployee(id: string, formData: FormData) {
         first_name: formData.get('firstName') as string,
         middle_name: formData.get('middleName') as string,
         last_name: formData.get('lastName') as string,
-        sex: formData.get('gender') as string,
-        birthdate: formData.get('birthdate') as string || null,
+        gender: formData.get('gender') as string,
+        birth_date: formData.get('birthdate') as string || null,
         tin: formData.get('tin') as string,
         civil_service_eligibility: formData.get('eligibility') as string,
         is_deceased: formData.get('isDeceased') === 'true',
@@ -530,6 +530,26 @@ export async function createEmployeePds(payload: any) {
             }
         }
 
+        // 7. Insert Work Experience
+        if (payload.workExperience?.length > 0) {
+            const experience = payload.workExperience
+                .filter((e: any) => e.positionTitle.trim() !== '')
+                .map((e: any) => ({
+                    employee_id: employeeUuid,
+                    inclusive_date_from: toNull(e.from),
+                    inclusive_date_to: toNull(e.to),
+                    position_title: e.positionTitle,
+                    department_agency_company: e.department,
+                    status_of_appointment: toNull(e.status),
+                    is_government_service: e.isGovernment === 'Yes'
+                }));
+
+            if (experience.length > 0) {
+                const { error: expError } = await supabase.from('employee_work_experience').insert(experience);
+                if (expError) throw new Error(`Work experience records failed: ${expError.message}`);
+            }
+        }
+
         console.log('PDS created successfully for:', employeeUuid);
         revalidatePath('/dashboard/employees');
         return { success: true };
@@ -567,11 +587,16 @@ export async function getEmployeeFullProfile(employeeUuid: string) {
     const { data: children } = await supabase.from('employee_children').select('*').eq('employee_id', employeeUuid);
     const { data: education } = await supabase.from('employee_education').select('*').eq('employee_id', employeeUuid).order('year_graduated', { ascending: false });
     const { data: eligibility } = await supabase.from('employee_eligibility').select('*').eq('employee_id', employeeUuid);
+    const { data: experience } = await supabase.from('employee_work_experience').select('*').eq('employee_id', employeeUuid).order('inclusive_date_from', { ascending: false });
 
     const pos = (employee as any)?.positions || {};
 
     return {
         ...employee,
+        // Map consistent naming for the UI
+        birthdate: employee.birth_date,
+        sex: employee.gender,
+        
         // Map nested position data back to the flat structure the UI expects
         item_number: pos.item_number || '',
         position_title: pos.title || '',
@@ -588,7 +613,15 @@ export async function getEmployeeFullProfile(employeeUuid: string) {
         family,
         children: children || [],
         education: education || [],
-        eligibility: eligibility || []
+        eligibility: eligibility || [],
+        workExperience: (experience || []).map(exp => ({
+            from: exp.inclusive_date_from,
+            to: exp.inclusive_date_to,
+            positionTitle: exp.position_title,
+            department: exp.department_agency_company,
+            status: exp.status_of_appointment,
+            isGovernment: exp.is_government_service ? 'Yes' : 'No'
+        }))
     };
 }
 
@@ -810,6 +843,26 @@ export async function updateEmployeeFullProfile(employeeUuid: string, payload: a
             if (eligibility.length > 0) {
                 const { error: eligError } = await supabase.from('employee_eligibility').insert(eligibility);
                 if (eligError) throw new Error(`Eligibility update failed: ${eligError.message}`);
+            }
+        }
+
+        // 7. Work Experience (Delete and Re-insert)
+        await supabase.from('employee_work_experience').delete().eq('employee_id', employeeUuid);
+        if (payload.workExperience?.length > 0) {
+            const experience = payload.workExperience
+                .filter((e: any) => e.positionTitle.trim() !== '')
+                .map((e: any) => ({
+                    employee_id: employeeUuid,
+                    inclusive_date_from: toNull(e.from),
+                    inclusive_date_to: toNull(e.to),
+                    position_title: e.positionTitle,
+                    department_agency_company: e.department,
+                    status_of_appointment: toNull(e.status),
+                    is_government_service: e.isGovernment === 'Yes'
+                }));
+            if (experience.length > 0) {
+                const { error: expError } = await supabase.from('employee_work_experience').insert(experience);
+                if (expError) throw new Error(`Work experience update failed: ${expError.message}`);
             }
         }
 

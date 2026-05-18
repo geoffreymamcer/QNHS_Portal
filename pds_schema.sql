@@ -123,12 +123,29 @@ CREATE TABLE public.employee_eligibility (
   CONSTRAINT employee_eligibility_pkey PRIMARY KEY (id)
 ) TABLESPACE pg_default;
 
+-- 6. Work Experience (One-to-many)
+CREATE TABLE public.employee_work_experience (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  employee_id uuid NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
+  inclusive_date_from date,
+  inclusive_date_to date,
+  position_title text NOT NULL,
+  department_agency_company text NOT NULL,
+  status_of_appointment text,
+  is_government_service boolean DEFAULT false,
+  
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT employee_work_experience_pkey PRIMARY KEY (id)
+) TABLESPACE pg_default;
+
 -- Enable RLS
 ALTER TABLE employee_pds ENABLE ROW LEVEL SECURITY;
 ALTER TABLE employee_family ENABLE ROW LEVEL SECURITY;
 ALTER TABLE employee_children ENABLE ROW LEVEL SECURITY;
 ALTER TABLE employee_education ENABLE ROW LEVEL SECURITY;
 ALTER TABLE employee_eligibility ENABLE ROW LEVEL SECURITY;
+ALTER TABLE employee_work_experience ENABLE ROW LEVEL SECURITY;
 
 -- Policies (Simplified: Admins can manage everything)
 CREATE POLICY "Admins can manage employee_pds" ON employee_pds FOR ALL TO authenticated USING (EXISTS (SELECT 1 FROM admins WHERE id = auth.uid()));
@@ -136,3 +153,4 @@ CREATE POLICY "Admins can manage employee_family" ON employee_family FOR ALL TO 
 CREATE POLICY "Admins can manage employee_children" ON employee_children FOR ALL TO authenticated USING (EXISTS (SELECT 1 FROM admins WHERE id = auth.uid()));
 CREATE POLICY "Admins can manage employee_education" ON employee_education FOR ALL TO authenticated USING (EXISTS (SELECT 1 FROM admins WHERE id = auth.uid()));
 CREATE POLICY "Admins can manage employee_eligibility" ON employee_eligibility FOR ALL TO authenticated USING (EXISTS (SELECT 1 FROM admins WHERE id = auth.uid()));
+CREATE POLICY "Admins can manage employee_work_experience" ON employee_work_experience FOR ALL TO authenticated USING (EXISTS (SELECT 1 FROM admins WHERE id = auth.uid()));
